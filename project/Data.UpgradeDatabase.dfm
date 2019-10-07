@@ -11,22 +11,11 @@ object UpgradeDataModule: TUpgradeDataModule
           'CREATE TABLE IF NOT EXISTS "DBInfo" ('
           #9'"VersionNr"'#9'INTEGER'
           ');'
-          'CREATE TABLE IF NOT EXISTS "Reports" ('
-          #9'"ReaderId"'#9'INTEGER,'
-          #9'"ISBN"'#9'NVARCHAR(20) NOT NULL,'
-          #9'"Rating"'#9'INTEGER,'
-          #9'"Oppinion"'#9'NVARCHAR(2000),'
-          #9'"Reported"'#9'DATETIME,'
-          #9'FOREIGN KEY("ISBN") REFERENCES "Books"("ISBN")'
-          ');'
           'CREATE TABLE IF NOT EXISTS "Readers" ('
-          #9'"ReaderId"'#9'INTEGER NOT NULL,'
+          #9'"ReaderId"'#9'VARCHAR[20] NOT NULL,'
           #9'"FirstName"'#9'NVARCHAR(100),'
           #9'"LastName"'#9'NVARCHAR(100),'
-          #9'"Email"'#9'NVARCHAR(50),'
-          #9'"Company"'#9'NVARCHAR(100),'
-          #9'"BooksRead"'#9'INTEGER,'
-          #9'"LastReport"'#9'DATETIME,'
+          #9'"Contact"'#9'NVARCHAR(200),'
           #9'"Created"'#9'DATETIME,'
           #9'PRIMARY KEY("ReaderId")'
           ');'
@@ -42,6 +31,15 @@ object UpgradeDataModule: TUpgradeDataModule
           #9'"Imported"'#9'DATETIME,'
           #9'"Description"'#9'NVARCHAR(2000),'
           #9'PRIMARY KEY("ISBN")'
+          ');'
+          'CREATE TABLE IF NOT EXISTS "Reports" ('
+          #9'"ReaderId"'#9'VARCHAR[20] NOT NULL,'
+          #9'"ISBN"'#9'NVARCHAR(20) NOT NULL,'
+          #9'"Rating"'#9'INTEGER,'
+          #9'"Oppinion"'#9'NVARCHAR(2000),'
+          #9'"Reported"'#9'DATETIME,'
+          #9'FOREIGN KEY("ReaderId") REFERENCES "Readers"("ReaderId"),'
+          #9'FOREIGN KEY("ISBN") REFERENCES "Books"("ISBN")'
           ');'
           'COMMIT;'
           'BEGIN TRANSACTION;'
@@ -83,66 +81,67 @@ object UpgradeDataModule: TUpgradeDataModule
             'C scalar functions, achieve blazing performance with Array DML, ' +
             'Master the art of cached updates'#39');'
           
-            'INSERT INTO "Readers" VALUES (1,'#39'Routledge'#39','#39'Ned'#39','#39'nroutledge2j@' +
-            'europa.eu'#39','#39'Stamm, Cassin and Bins'#39',1,'#39'2018-04-10'#39','#39'2017-09-15'#39')' +
-            ';'
+            'INSERT INTO "Readers" VALUES ('#39'3C363836CF4E16'#39','#39'Routledge'#39','#39'Ned'#39 +
+            ','#39'nroutledge2j@europa.eu'#39','#39'Stamm, Cassin and Bins'#39',1,'#39'2018-04-10' +
+            #39','#39'2017-09-15'#39');'
           
-            'INSERT INTO "Readers" VALUES (2,'#39'Sobieraj'#39','#39'Stanis'#322'aw'#39','#39'staszek.' +
-            'sobieraj@empik.com'#39','#39'Empik sp. z o.o.'#39',1,'#39'2018-06-10'#39','#39'2017-11-2' +
-            '3'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'666669A25DA280'#39','#39'Sobieraj'#39','#39'Stani' +
+            's'#322'aw'#39','#39'staszek.sobieraj@empik.com'#39','#39'Empik sp. z o.o.'#39',1,'#39'2018-06' +
+            '-10'#39','#39'2017-11-23'#39');'
           
-            'INSERT INTO "Readers" VALUES (3,'#39'Gervasio'#39','#39'Brancato'#39','#39'rervasio3' +
-            '419@email.it'#39','#39'Komerci'#39',1,'#39'2018-08-15 22:12:31.000'#39','#39'2019-02-16 ' +
-            '22:20:16.515'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'A1865C2D28743A'#39','#39'Gervasio'#39','#39'Branc' +
+            'ato'#39','#39'rervasio3419@email.it'#39','#39'Komerci'#39',1,'#39'2018-08-15 22:12:31.00' +
+            '0'#39','#39'2019-02-16 22:20:16.515'#39');'
           
-            'INSERT INTO "Readers" VALUES (4,'#39'Rolando'#39','#39'D'#39#39'Ottavio'#39','#39'r.ottavi' +
-            'o@alice.it'#39','#39'Motife Srl'#39',1,'#39'2018-08-23 12:02:17.000'#39','#39'2019-02-16' +
-            ' 22:20:16.516'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'9C78E8A4077FFF'#39','#39'Rolando'#39','#39'D'#39#39'Ott' +
+            'avio'#39','#39'r.ottavio@alice.it'#39','#39'Motife Srl'#39',1,'#39'2018-08-23 12:02:17.0' +
+            '00'#39','#39'2019-02-16 22:20:16.516'#39');'
           
-            'INSERT INTO "Readers" VALUES (5,'#39'Adolfo'#39','#39'Alba'#39','#39'aa9876543@gmail' +
-            '.com'#39','#39#39',1,'#39'2018-09-02 21:55:43.000'#39','#39'2019-02-16 22:20:16.517'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'E8990871132C1E'#39','#39'Adolfo'#39','#39'Alba'#39','#39 +
+            'aa9876543@gmail.com'#39','#39#39',1,'#39'2018-09-02 21:55:43.000'#39','#39'2019-02-16 ' +
+            '22:20:16.517'#39');'
           
-            'INSERT INTO "Readers" VALUES (6,'#39'Pancrazio'#39','#39'Muto'#39','#39'SuperPancraz' +
-            'io70@email.it'#39','#39#39',1,'#39'2018-09-15 00:32:31.000'#39','#39'2019-02-16 22:20:' +
-            '16.518'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'B8C69F7CA0384A'#39','#39'Pancrazio'#39','#39'Muto' +
+            #39','#39'SuperPancrazio70@email.it'#39','#39#39',1,'#39'2018-09-15 00:32:31.000'#39','#39'20' +
+            '19-02-16 22:20:16.518'#39');'
           
-            'INSERT INTO "Readers" VALUES (7,'#39'Owbridge'#39','#39'Ian'#39','#39'iowbridge1v@jo' +
-            'omla.org'#39','#39#39',1,'#39'2018-09-28 01:02:21.000'#39','#39'2019-02-16 22:20:16.51' +
-            '9'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'8739E6070F096C'#39','#39'Owbridge'#39','#39'Ian'#39',' +
+            #39'iowbridge1v@joomla.org'#39','#39#39',1,'#39'2018-09-28 01:02:21.000'#39','#39'2019-02' +
+            '-16 22:20:16.519'#39');'
           
-            'INSERT INTO "Reports" VALUES (1,'#39'978-1941266229'#39',9,'#39'Nick'#39#39's pers' +
-            'pective on developing modern Delphi code and his methodologies h' +
-            'ave really made a difference in our team.'#39','#39'2018-09-20 17:39:49.' +
-            '000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'3C363836CF4E16'#39','#39'978-1941266229'#39',' +
+            '9,'#39'Nick'#39#39's perspective on developing modern Delphi code and his ' +
+            'methodologies have really made a difference in our team.'#39','#39'2018-' +
+            '09-20 17:39:49.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (2,'#39'978-1788621304'#39',10,'#39'Great! Ther' +
-            'e are lots of an easy to implement recepies. Very useful for the' +
-            ' future. I recommend it to an every Delphi developer.'#39','#39'2018-07-' +
-            '27 20:30:49.000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'666669A25DA280'#39','#39'978-1788621304'#39',' +
+            '10,'#39'Great! There are lots of an easy to implement recepies. Very' +
+            ' useful for the future. I recommend it to an every Delphi develo' +
+            'per.'#39','#39'2018-07-27 20:30:49.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (3,'#39'978-1941266038'#39',9,'#39'This must-re' +
-            'ad book highlights the importance writung of clean and resposibl' +
-            'e code in Delphi.'#39','#39'2018-08-15 22:12:31.000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'A1865C2D28743A'#39','#39'978-1941266038'#39',' +
+            '9,'#39'This must-read book highlights the importance writung of clea' +
+            'n and resposible code in Delphi.'#39','#39'2018-08-15 22:12:31.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (4,'#39'978-1786466150'#39',8,'#39'This is the ' +
-            'key to making things done and getting the results.'#39','#39'2018-08-23 ' +
-            '12:02:17.000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'9C78E8A4077FFF'#39','#39'978-1786466150'#39',' +
+            '8,'#39'This is the key to making things done and getting the results' +
+            '.'#39','#39'2018-08-23 12:02:17.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (5,'#39'978-1786460165'#39',7,'#39'The tools an' +
-            'd insights author shares in his book have been instrumental in e' +
-            'levating my development knowledge.'#39','#39'2018-09-02 21:55:43.000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'E8990871132C1E'#39','#39'978-1786460165'#39',' +
+            '7,'#39'The tools and insights author shares in his book have been in' +
+            'strumental in elevating my development knowledge.'#39','#39'2018-09-02 2' +
+            '1:55:43.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (6,'#39'978-1546391272'#39',8,'#39'It'#8217's require' +
-            'd reading for any developer looking to play with FireDAC'#39','#39'2018-' +
-            '09-15 00:32:31.000'#39');'
+            'INSERT INTO "Reports" VALUES ('#39'B8C69F7CA0384A'#39','#39'978-1546391272'#39',' +
+            '8,'#39'It'#8217's required reading for any developer looking to play with ' +
+            'FireDAC'#39','#39'2018-09-15 00:32:31.000'#39');'
           
-            'INSERT INTO "Reports" VALUES (7,'#39'978-1788621304'#39',10,'#39'Daniele'#8217's s' +
-            'mart and thoughtful approach showing small and extremely useful ' +
-            'recipes was the best reading for me.'#39','#39'2018-09-28 01:02:21.000'#39')' +
-            ';'
+            'INSERT INTO "Reports" VALUES ('#39'8739E6070F096C'#39','#39'978-1788621304'#39',' +
+            '10,'#39'Daniele'#8217's smart and thoughtful approach showing small and ex' +
+            'tremely useful recipes was the best reading for me.'#39','#39'2018-09-28' +
+            ' 01:02:21.000'#39');'
           'INSERT INTO "DBInfo" VALUES (2001);'
-          'COMMIT;'
-          '')
+          'COMMIT;')
       end>
     Params = <>
     Macros = <>
