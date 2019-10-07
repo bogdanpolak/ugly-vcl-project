@@ -10,7 +10,6 @@ type
   TWebModule1 = class(TWebModule)
     PageProducerBooks1: TPageProducer;
     PageProducerBooks2: TPageProducer;
-    PageTemplate1: TPageProducer;
     procedure WebModule1DefaultHandlerAction(Sender: TObject;
       Request: TWebRequest; Response: TWebResponse; var Handled: Boolean);
     procedure WebModuleCreate(Sender: TObject);
@@ -123,10 +122,6 @@ begin
 end;
 
 (*
-'Dansie','Cléopatre','wdansie1l@bizjournals.com','',5
-'Demko','Karlik','kdemko5@carter-baumbach.com','Carter-Baumbach',1
-'Wallicker','Rui','awallicker4@about.me','',1
-'Damper','Tori','tdampery@lowe.com','',1
 'Sandeman','Marten','asandeman1z@trellian.com','',1
 'Pesak','Gussi','gpesako@koepp.com','Koepp LLC',1
 'Oldknow','Bondon','boldknow1g@gizmodo.com','',1
