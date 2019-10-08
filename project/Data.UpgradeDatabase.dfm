@@ -82,64 +82,57 @@ object UpgradeDataModule: TUpgradeDataModule
             'Master the art of cached updates'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'3C363836CF4E16'#39','#39'Routledge'#39','#39'Ned'#39 +
-            ','#39'nroutledge2j@europa.eu'#39','#39'Stamm, Cassin and Bins'#39',1,'#39'2018-04-10' +
-            #39','#39'2017-09-15'#39');'
+            ','#39'nroutledge2j@europa.eu'#39','#39'2019-04-10'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'666669A25DA280'#39','#39'Sobieraj'#39','#39'Stani' +
-            's'#322'aw'#39','#39'staszek.sobieraj@empik.com'#39','#39'Empik sp. z o.o.'#39',1,'#39'2018-06' +
-            '-10'#39','#39'2017-11-23'#39');'
+            's'#322'aw'#39',NULL,'#39'2019-05-10'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'A1865C2D28743A'#39','#39'Gervasio'#39','#39'Branc' +
-            'ato'#39','#39'rervasio3419@email.it'#39','#39'Komerci'#39',1,'#39'2018-08-15 22:12:31.00' +
-            '0'#39','#39'2019-02-16 22:20:16.515'#39');'
+            'ato'#39',NULL,'#39'2019-06-15'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'9C78E8A4077FFF'#39','#39'Rolando'#39','#39'D'#39#39'Ott' +
-            'avio'#39','#39'r.ottavio@alice.it'#39','#39'Motife Srl'#39',1,'#39'2018-08-23 12:02:17.0' +
-            '00'#39','#39'2019-02-16 22:20:16.516'#39');'
+            'avio'#39',NULL,'#39'2019-06-23'#39');'
           
-            'INSERT INTO "Readers" VALUES ('#39'E8990871132C1E'#39','#39'Adolfo'#39','#39'Alba'#39','#39 +
-            'aa9876543@gmail.com'#39','#39#39',1,'#39'2018-09-02 21:55:43.000'#39','#39'2019-02-16 ' +
-            '22:20:16.517'#39');'
+            'INSERT INTO "Readers" VALUES ('#39'E8990871132C1E'#39','#39'Adolfo'#39','#39'Alba'#39',N' +
+            'ULL,'#39'2019-07-02'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'B8C69F7CA0384A'#39','#39'Pancrazio'#39','#39'Muto' +
-            #39','#39'SuperPancrazio70@email.it'#39','#39#39',1,'#39'2018-09-15 00:32:31.000'#39','#39'20' +
-            '19-02-16 22:20:16.518'#39');'
+            #39',NULL,'#39'2019-07-16'#39');'
           
             'INSERT INTO "Readers" VALUES ('#39'8739E6070F096C'#39','#39'Owbridge'#39','#39'Ian'#39',' +
-            #39'iowbridge1v@joomla.org'#39','#39#39',1,'#39'2018-09-28 01:02:21.000'#39','#39'2019-02' +
-            '-16 22:20:16.519'#39');'
+            'NULL,'#39'2019-07-28'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'3C363836CF4E16'#39','#39'978-1941266229'#39',' +
             '9,'#39'Nick'#39#39's perspective on developing modern Delphi code and his ' +
-            'methodologies have really made a difference in our team.'#39','#39'2018-' +
-            '09-20 17:39:49.000'#39');'
+            'methodologies have really made a difference in our team.'#39','#39'2019-' +
+            '05-10 17:39:49.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'666669A25DA280'#39','#39'978-1788621304'#39',' +
             '10,'#39'Great! There are lots of an easy to implement recepies. Very' +
             ' useful for the future. I recommend it to an every Delphi develo' +
-            'per.'#39','#39'2018-07-27 20:30:49.000'#39');'
+            'per.'#39','#39'2019-05-10 20:30:49.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'A1865C2D28743A'#39','#39'978-1941266038'#39',' +
             '9,'#39'This must-read book highlights the importance writung of clea' +
-            'n and resposible code in Delphi.'#39','#39'2018-08-15 22:12:31.000'#39');'
+            'n and resposible code in Delphi.'#39','#39'2019-06-15 22:12:31.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'9C78E8A4077FFF'#39','#39'978-1786466150'#39',' +
             '8,'#39'This is the key to making things done and getting the results' +
-            '.'#39','#39'2018-08-23 12:02:17.000'#39');'
+            '.'#39','#39'2019-06-23 12:02:17.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'E8990871132C1E'#39','#39'978-1786460165'#39',' +
             '7,'#39'The tools and insights author shares in his book have been in' +
-            'strumental in elevating my development knowledge.'#39','#39'2018-09-02 2' +
+            'strumental in elevating my development knowledge.'#39','#39'2019-07-02 2' +
             '1:55:43.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'B8C69F7CA0384A'#39','#39'978-1546391272'#39',' +
             '8,'#39'It'#8217's required reading for any developer looking to play with ' +
-            'FireDAC'#39','#39'2018-09-15 00:32:31.000'#39');'
+            'FireDAC'#39','#39'2019-07-16 00:32:31.000'#39');'
           
             'INSERT INTO "Reports" VALUES ('#39'8739E6070F096C'#39','#39'978-1788621304'#39',' +
             '10,'#39'Daniele'#8217's smart and thoughtful approach showing small and ex' +
-            'tremely useful recipes was the best reading for me.'#39','#39'2018-09-28' +
-            ' 01:02:21.000'#39');'
+            'tremely useful recipes was the best reading for me.'#39','#39'2019-07-28' +
+            ' 19:02:21.000'#39');'
           'INSERT INTO "DBInfo" VALUES (2001);'
           'COMMIT;')
       end>
