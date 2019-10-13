@@ -22,7 +22,9 @@ type
     currency: string;
     imported: TDateTime;
     description: string;
-    constructor Create(Books: IBooksDAO); overload;
+    constructor Create;
+    constructor CreateAndLoad(Books: IBooksDAO);
+    procedure LoadFrom(Books: IBooksDAO);
   end;
 
   TBookCollection = class(TObjectList<TBook>)
@@ -57,7 +59,7 @@ type
     destructor Destroy; override;
     { TODO 3: Introduce 3 properties: ListBoxOnShelf, ListBoxAvaliable, Books }
     procedure PrepareListBoxes(lbxOnShelf, lbxAvaliable: TListBox);
-    function GetBookList (kind: TBookListKind): TBookCollection; 
+    function GetBookList (kind: TBookListKind): TBookCollection;
     function FindBook (isbn: string): TBook;
     procedure InsertNewBook (b:TBook);
   end;
@@ -269,7 +271,7 @@ begin
   BooksDAO.ForEach(
     procedure(Books: IBooksDAO)
     begin
-      self.Add(TBook.Create(Books));
+      self.Add(TBook.CreateAndLoad(Books));
     end);
 end;
 
@@ -288,7 +290,19 @@ end;
 
 { TBook }
 
-constructor TBook.Create(Books: IBooksDAO);
+
+constructor TBook.Create;
+begin
+  self.status := 'avaliable';
+end;
+
+constructor TBook.CreateAndLoad(Books: IBooksDAO);
+begin
+  Create;
+  LoadFrom(Books);
+end;
+
+procedure TBook.LoadFrom(Books: IBooksDAO);
 begin
   inherited Create;
   self.isbn := Books.fldISBN.Value;

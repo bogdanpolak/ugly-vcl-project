@@ -36,6 +36,7 @@ type
     procedure OpenDataSets;
     function GetDatabaseVersion: integer;
     function FindReaderByEmil(const email: string): Variant;
+    function IsReaderExists(const ReaderID: string): boolean;
     { TODO 2: [Helper] Extract into TDataSet helper. This pollutes the Data Module public API }
     function GetMaxValueInDataSet(DataSet: TDataSet;
       const fieldName: string): integer;
@@ -175,6 +176,11 @@ begin
     Result := fdqReaders.FieldByName('ReaderId').Value
   else
     Result := System.Variants.Null()
+end;
+
+function TDataModMain.IsReaderExists(const ReaderID: string): boolean;
+begin
+  Result := fdqReaders.Locate('readerId', ReaderID, []);
 end;
 
 function TDataModMain.GetMaxValueInDataSet(DataSet: TDataSet;
