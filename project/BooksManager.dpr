@@ -19,7 +19,8 @@ uses
   ClientAPI.Readers in 'api\ClientAPI.Readers.pas',
   ExtGUI.ListBox.Books in 'ExtGUI.ListBox.Books.pas',
   Consts.SQL in 'Consts.SQL.pas',
-  Data.UpgradeDatabase in 'Data.UpgradeDatabase.pas' {UpgradeDataModule: TDataModule};
+  Data.UpgradeDatabase in 'Data.UpgradeDatabase.pas' {UpgradeDataModule: TDataModule},
+  CloudBooks.Reviews_ in 'api\CloudBooks.Reviews_.pas' {CloudBooksDM: TDataModule};
 
 {$R *.res}
 
@@ -29,5 +30,6 @@ begin
   Application.CreateForm(TForm1, Form1);
   Application.CreateForm(TDataModMain, DataModMain);
   Application.CreateForm(TUpgradeDataModule, UpgradeDataModule);
+  Application.CreateForm(TCloudBooksDM, CloudBooksDM);
   Application.Run;
 end.

@@ -67,8 +67,7 @@ uses
   Frame.Import,
   Data.Main,
   Data.UpgradeDatabase,
-  ClientAPI.Readers,
-  ClientAPI.Books;
+  CloudBooks.Reviews_;
 
 const
   Client_API_Token = '20be805d-9cea27e2-a588efc5-1fceb84d-9fb4b67c';
@@ -172,25 +171,22 @@ end;
 
 // ----------------------------------------------------------
 //
-// Function checks is TJsonObject has field and this field has not null value
+// Function checks is TJSONValue has field and this field has not null value
 //
-{ TODO 2: [Helper] TJSONObject Class helpper and more minigful name expected }
-function fieldAvaliable(jsObject: TJSONObject; const fieldName: string)
-  : Boolean; inline;
+{ TODO 2: [Helper] TJSONValue Class helpper and more minigful name expected }
+function fieldAvaliable(jsValue: TJSONValue): Boolean;
 begin
-  Result := Assigned(jsObject.Values[fieldName]) and not jsObject.Values
-    [fieldName].Null;
+  Result := Assigned(jsValue) and not jsValue.Null;
 end;
 
-{ TODO 2: [Helper] TJSONObject Class helpper and this method has two responsibilities }
-// Warning! In-out var parameter
-// extract separate:  GetIsoDateUtc
-function IsValidIsoDateUtc(jsObj: TJSONObject; const Field: string;
-  var dt: TDateTime): Boolean;
+{ TODO 2: [Helper] TJSONValue Class helpper and this method has two responsibilities }
+function JsonValueIsIsoDate(jsValue: TJSONValue): Boolean;
+var
+  dt: TDateTime;
 begin
   dt := 0;
   try
-    dt := System.DateUtils.ISO8601ToDate(jsObj.Values[Field].Value, False);
+    dt := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
     Result := True;
   except
     on E: Exception do
@@ -198,18 +194,9 @@ begin
   end
 end;
 
-{ TODO 2: Move into Utils.General }
-function CheckEmail(const s: string): Boolean;
-const
-  EMAIL_REGEX = '^((?>[a-zA-Z\d!#$%&''*+\-/=?^_`{|}~]+\x20*|"((?=[\x01-\x7f])' +
-    '[^"\\]|\\[\x01-\x7f])*"\x20*)*(?<angle><))?((?!\.)' +
-    '(?>\.?[a-zA-Z\d!#$%&''*+\-/=?^_`{|}~]+)+|"((?=[\x01-\x7f])' +
-    '[^"\\]|\\[\x01-\x7f])*")@(((?!-)[a-zA-Z\d\-]+(?<!-)\.)+[a-zA-Z]' +
-    '{2,}|\[(((?(?<!\[)\.)(25[0-5]|2[0-4]\d|[01]?\d?\d))' +
-    '{4}|[a-zA-Z\d\-]*[a-zA-Z\d]:((?=[\x01-\x7f])[^\\\[\]]|\\' +
-    '[\x01-\x7f])+)\])(?(angle)>)$';
+function JsonValueAsIsoDate(jsValue: TJSONValue): TDateTime;
 begin
-  Result := System.RegularExpressions.TRegEx.IsMatch(s, EMAIL_REGEX);
+  result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
 end;
 
 function BooksToDateTime(const s: string): TDateTime;
@@ -235,16 +222,6 @@ begin
   Result := EncodeDate(yy, mm, 1);
 end;
 
-// TODO 3: Move this procedure into class (idea)
-procedure ValidateReadersReport(jsRow: TJSONObject; email: string;
-  var dtReported: TDateTime);
-begin
-  if not CheckEmail(email) then
-    raise Exception.Create('Invalid email addres');
-  if not IsValidIsoDateUtc(jsRow, 'created', dtReported) then
-    raise Exception.Create('Invalid date. Expected ISO format');
-end;
-
 function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
   const Caption: string): TFrame;
 var
@@ -262,61 +239,81 @@ begin
   tab.Data := Result;
 end;
 
+type
+  TReview = record
+    ReporterID: string;
+    FirstName: string;
+    LastName: string;
+    Contact: string;
+    Registered: TDateTime;
+    Rating: Integer;
+    Oppinion: string;
+    procedure Validate;
+  end;
+
+procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
+var
+  isValid: Boolean;
+begin
+  isValid := jsReviewer.Values['rating'] is TJSONNumber and
+    JsonValueIsIsoDate (jsReviewer.Values['registered']);
+  if not isValid then
+    raise Exception.Create('Invalid reviewer JOSN record: ' +
+      jsReviewer.ToString);
+end;
+
 { TODO 2: [A] Method is too large. Comments is showing separate methods }
 procedure TForm1.btnImportClick(Sender: TObject);
 var
+  b: TBook;
+  jsBookReviews: TJSONArray;
+  jsBook: TJSONObject;
+  b2: TBook;
+  jsReviewers: TJSONArray;
+  i: Integer;
+  j: Integer;
+  jsReviewer: TJSONObject;
+  Review: TReview;
+  isbn: string;
+
   frm: TFrameImport;
-  jsData: TJSONArray;
   DBGrid1: TDBGrid;
   DataSrc1: TDataSource;
   DBGrid2: TDBGrid;
   DataSrc2: TDataSource;
-  i: Integer;
-  jsRow: TJSONObject;
-  email: string;
-  firstName: string;
-  lastName: string;
-  company: string;
-  bookISBN: string;
-  bookTitle: string;
-  rating: Integer;
-  oppinion: string;
-  ss: array of string;
+  AllRatings: array of Integer;
   v: string;
   dtReported: TDateTime;
-  readerId: Variant;
-  b: TBook;
-  jsBooks: TJSONArray;
-  jsBook: TJSONObject;
-  TextBookReleseDate: string;
-  b2: TBook;
 begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
-  // Import new Books data from OpenAPI
+  // Get Book Reviews from Cloud as TJSONArray
   //
-  { TODO 2: [A] Extract method. Read comments and use meaningful name }
-  jsBooks := ImportBooksFromWebService(Client_API_Token);
+  jsBookReviews := CloudBooksDM.ConstructAndGetReviews('2019-08-01');
   try
-    for i := 0 to jsBooks.Count - 1 do
+    // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    //
+    // Import new Books from json data
+    //
+    { TODO 2: [A] Extract method. Read comments and use meaningful name }
+    for i := 0 to jsBookReviews.Count - 1 do
     begin
-      jsBook := jsBooks.Items[i] as TJSONObject;
-      b := TBook.Create;
-      b.status := jsBook.Values['status'].Value;
-      b.title := jsBook.Values['title'].Value;
-      b.isbn := jsBook.Values['isbn'].Value;
-      b.author := jsBook.Values['author'].Value;
-      TextBookReleseDate := jsBook.Values['date'].Value;
-      b.releseDate := BooksToDateTime(TextBookReleseDate);
-      b.pages := (jsBook.Values['pages'] as TJSONNumber).AsInt;
-      b.price := StrToCurr(jsBook.Values['price'].Value);
-      b.currency := jsBook.Values['currency'].Value;
-      b.description := jsBook.Values['description'].Value;
-      b.imported := Now();
-      b2 := FBooksConfig.GetBookList(blkAll).FindByISBN(b.isbn);
-      if not Assigned(b2) then
+      jsBook := jsBookReviews.Items[i] as TJSONObject;
+      isbn := jsBook.Values['isbn'].Value;
+      if FBooksConfig.GetBookList(blkAll).FindByISBN(b.isbn) = nil then
       begin
+        b := TBook.Create;
+        b.title := jsBook.Values['title'].Value;
+        b.isbn := jsBook.Values['isbn'].Value;
+        b.author := jsBook.Values['author'].Value;
+        b.releseDate := BooksToDateTime(jsBook.Values['date'].Value);
+        b.pages := (jsBook.Values['pages'] as TJSONNumber).AsInt;
+        b.price := StrToCurr(jsBook.Values['price'].Value);
+        b.currency := jsBook.Values['currency'].Value;
+        b.description := jsBook.Values['description'].Value;
+        b.imported := Now();
         FBooksConfig.InsertNewBook(b);
         // ----------------------------------------------------------------
         // Append report into the database:
@@ -326,9 +323,73 @@ begin
           b.releseDate, b.pages, b.price, b.currency, b.imported,
           b.description]);
       end;
+      jsReviewers := jsBook.Values['reviews'] as TJSONArray;
+      // ----------------------------------------------------------
+      // ----------------------------------------------------------
+      //
+      // - Extract new Reviewers reports reviews (JSON)
+      // - Validate JSON and insert new a Readers into the Database
+      //
+      for j := 0 to jsReviewers.Count - 1 do
+      begin
+        { TODO 3: [A] Extract Reader Report code into the record TReaderReport (model layer) }
+        { TODO 2: [F] Repeated code. Violation of the DRY rule }
+        // Use TJSONObject helper Values return Variant.Null
+        // ----------------------------------------------------------------
+        //
+        // Read JSON object
+        //
+        { TODO 3: [A] Move this code into record TReaderReport.LoadFromJSON }
+        jsReviewer := jsReviewers.Items[i] as TJSONObject;
+        // ----------------------------------------------------------------
+        ValidateJsonReviewer(jsReviewer);
+        // ----------------------------------------------------------------
+        with Review do
+        begin
+          ReporterID := jsReviewer.Values['reporter-id'].Value;
+          Registered := JsonValueAsIsoDate(jsReviewer.Values['registered']);
+          rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
+          // Contact: string;
+          if fieldAvaliable(jsReviewer.Values['firstname']) then
+            FirstName := jsReviewer.Values['firstname'].Value
+          else
+            FirstName := '';
+          if fieldAvaliable(jsReviewer.Values['lastname']) then
+            LastName := jsReviewer.Values['lastname'].Value
+          else
+            LastName := '';
+          if fieldAvaliable(jsReviewer.Values['review']) then
+            Oppinion := jsReviewer.Values['review'].Value
+          else
+            Oppinion := '';
+        end;
+        // ----------------------------------------------------------------
+        // Find the Reader / Reporter in then database using an ID
+        // Append a new reader into the database if requred:
+        // ----------------------------------------------------------------
+        if not DataModMain.IsReaderExists(Review.ReporterID) then
+        begin
+          //
+          // Fields: ReaderId, FirstName, LastName, Email, Company, BooksRead,
+          // LastReport, ReadersCreated
+          //
+          DataModMain.fdqReaders.AppendRecord([Review.ReporterID,
+            Review.FirstName, Review.LastName, NULL, Review.Registered]);
+        end;
+        // ----------------------------------------------------------------
+        //
+        // Append report into the database:
+        // Fields: ReaderId, ISBN, Rating, Oppinion, Reported
+        //
+        DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
+          Review.rating, Review.Oppinion, Review.Registered]);
+        // ----------------------------------------------------------------
+        Insert([rating], AllRatings, maxInt);
+      end;
     end;
+    RatingsAsString := RatingsToString(AllRatings);
   finally
-    jsBooks.Free;
+    jsReviews.Free;
   end;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
@@ -352,121 +413,26 @@ begin
   AutoSizeColumns(DBGrid1);
   // ----------------------------------------------------------
   // ----------------------------------------------------------
-  //
-  // Import new Reader Reports data from OpenAPI
-  // - Load JSON from WebService
-  // - Validate JSON and insert new a Readers into the Database
-  //
-  jsData := ImportReaderReportsFromWebService(Client_API_Token);
-  { TODO 2: [D] Extract method. Block try-catch is separate responsibility }
-  try
-    for i := 0 to jsData.Count - 1 do
-    begin
-      { TODO 3: [A] Extract Reader Report code into the record TReaderReport (model layer) }
-      { TODO 2: [F] Repeated code. Violation of the DRY rule }
-      // Use TJSONObject helper Values return Variant.Null
-      // ----------------------------------------------------------------
-      //
-      // Read JSON object
-      //
-      { TODO 3: [A] Move this code into record TReaderReport.LoadFromJSON }
-      jsRow := jsData.Items[i] as TJSONObject;
-      email := jsRow.Values['email'].Value;
-      if fieldAvaliable(jsRow, 'firstname') then
-        firstName := jsRow.Values['firstname'].Value
-      else
-        firstName := '';
-      if fieldAvaliable(jsRow, 'lastname') then
-        lastName := jsRow.Values['lastname'].Value
-      else
-        lastName := '';
-      if fieldAvaliable(jsRow, 'company') then
-        company := jsRow.Values['company'].Value
-      else
-        company := '';
-      if fieldAvaliable(jsRow, 'book-isbn') then
-        bookISBN := jsRow.Values['book-isbn'].Value
-      else
-        bookISBN := '';
-      if fieldAvaliable(jsRow, 'book-title') then
-        bookTitle := jsRow.Values['book-title'].Value
-      else
-        bookTitle := '';
-      if fieldAvaliable(jsRow, 'rating') then
-        rating := (jsRow.Values['rating'] as TJSONNumber).AsInt
-      else
-        rating := -1;
-      if fieldAvaliable(jsRow, 'oppinion') then
-        oppinion := jsRow.Values['oppinion'].Value
-      else
-        oppinion := '';
-      // ----------------------------------------------------------------
-      //
-      // Validate imported Reader report
-      //
-      { TODO 2: [E] Move validation up. Before reading data }
-      ValidateReadersReport(jsRow, email, dtReported);
-      // ----------------------------------------------------------------
-      //
-      // Locate book by ISBN
-      //
-      { TODO 2: [G] Extract method }
-      b := FBooksConfig.GetBookList(blkAll).FindByISBN(bookISBN);
-      if not Assigned(b) then
-        raise Exception.Create('Invalid book isbn');
-      // ----------------------------------------------------------------
-      // Find the Reader in then database using an email address
-      readerId := DataModMain.FindReaderByEmil(email);
-      // ----------------------------------------------------------------
-      //
-      // Append a new reader into the database if requred:
-      if System.Variants.VarIsNull(readerId) then
-      begin
-        { TODO 2: [G] Extract method }
-        readerId := DataModMain.GetMaxValueInDataSet(DataModMain.fdqReaders,
-          'ReaderId') + 1;
-        //
-        // Fields: ReaderId, FirstName, LastName, Email, Company, BooksRead,
-        // LastReport, ReadersCreated
-        //
-        DataModMain.fdqReaders.AppendRecord([readerId, firstName, lastName,
-          email, company, 1, dtReported, Now()]);
-      end;
-      // ----------------------------------------------------------------
-      //
-      // Append report into the database:
-      // Fields: ReaderId, ISBN, Rating, Oppinion, Reported
-      //
-      DataModMain.fdqReports.AppendRecord([readerId, bookISBN, rating, oppinion,
-        dtReported]);
-      // ----------------------------------------------------------------
-      if FApplicationInDeveloperMode then
-        Insert([rating.ToString], ss, maxInt);
-    end;
-    // ----------------------------------------------------------------
-    if FApplicationInDeveloperMode then
-      Caption := String.Join(' ,', ss);
-    // ----------------------------------------------------------------
-    with TSplitter.Create(frm) do
-    begin
-      Align := alBottom;
-      Parent := frm;
-      Height := 5;
-    end;
-    DBGrid1.Margins.Bottom := 0;
-    DataSrc2 := TDataSource.Create(frm);
-    DBGrid2 := TDBGrid.Create(frm);
-    DBGrid2.AlignWithMargins := True;
-    DBGrid2.Parent := frm;
-    DBGrid2.Align := alBottom;
-    DBGrid2.Height := frm.Height div 3;
-    DBGrid2.DataSource := DataSrc2;
-    DataSrc2.DataSet := DataModMain.fdqReports;
-    DBGrid2.Margins.Top := 0;
-    AutoSizeColumns(DBGrid2);
-  finally
-    jsData.Free;
+  if FApplicationInDeveloperMode then
+    Caption := RatingsAsString;
+  // ----------------------------------------------------------------
+  with TSplitter.Create(frm) do
+  begin
+    Align := alBottom;
+    Parent := frm;
+    Height := 5;
   end;
+  DBGrid1.Margins.Bottom := 0;
+  DataSrc2 := TDataSource.Create(frm);
+  DBGrid2 := TDBGrid.Create(frm);
+  DBGrid2.AlignWithMargins := True;
+  DBGrid2.Parent := frm;
+  DBGrid2.Align := alBottom;
+  DBGrid2.Height := frm.Height div 3;
+  DBGrid2.DataSource := DataSrc2;
+  DataSrc2.DataSet := DataModMain.fdqReports;
+  DBGrid2.Margins.Top := 0;
+  AutoSizeColumns(DBGrid2);
 end;
 
 procedure TForm1.ChromeTabs1ButtonCloseTabClick(Sender: TObject;
