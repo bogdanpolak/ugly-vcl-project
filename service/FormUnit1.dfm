@@ -112,13 +112,12 @@ object Form1: TForm1
         '/'
         '/books/review?startdate=2019-08-01'
         '/books/review?startdate=2019-09-02'
-        '/books/review/pack?page=1&token=20190801aaaa4782e8c9fe9a29'
-        '/books/review/pack?page=2&token=20190801aaaa4782e8c9fe9a29'
-        '/books/review/pack?page=1&token=20190902cccc5be4780927faec')
+        '/books/review/a001vv4782e8c9fe9a29'
+        '/books/review/a003vv4782e8c9fe9a29'
+        '/books/review/b001vv5be4780927faec')
       PopupMenu = pmnListbox
       TabOrder = 1
       OnDblClick = ListBox1DblClick
-      ExplicitLeft = 3
     end
   end
   object ApplicationEvents1: TApplicationEvents
