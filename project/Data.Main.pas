@@ -63,8 +63,7 @@ implementation
 uses
   System.Variants,
   Consts.SQL,
-  Utils.CipherAES128,
-  ClientAPI.Books;
+  Utils.CipherAES128;
 
 resourcestring
   SDBServerGone = 'Database server is gone';

@@ -16,7 +16,8 @@ uses
   Frame.Welcome,
   {TODO 3: [D] Resolve dependency on ExtGUI.ListBox.Books. Too tightly coupled}
   // Dependency is requred by attribute TBooksListBoxConfigurator
-  ExtGUI.ListBox.Books;
+  ExtGUI.ListBox.Books,
+  Cloud.Books.Reviews;
 
 type
   TFrameClass = class of TFrame;
@@ -45,6 +46,7 @@ type
     ChromeTabs1: TChromeTabs;
   private
     FBooksConfig: TBooksListBoxConfigurator;
+    CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
     procedure AutoSizeBooksGroupBoxes();
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
@@ -66,8 +68,7 @@ uses
   Utils.General,
   Frame.Import,
   Data.Main,
-  Data.UpgradeDatabase,
-  CloudBooks.Reviews_;
+  Data.UpgradeDatabase;
 
 const
   Client_API_Token = '20be805d-9cea27e2-a588efc5-1fceb84d-9fb4b67c';
@@ -184,10 +185,9 @@ function JsonValueIsIsoDate(jsValue: TJSONValue): Boolean;
 var
   dt: TDateTime;
 begin
-  dt := 0;
   try
     dt := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
-    Result := True;
+    if dt>0 then Result := True else  Result := True;
   except
     on E: Exception do
       Result := False;
@@ -196,7 +196,7 @@ end;
 
 function JsonValueAsIsoDate(jsValue: TJSONValue): TDateTime;
 begin
-  result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
+  Result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
 end;
 
 function BooksToDateTime(const s: string): TDateTime;
@@ -248,7 +248,6 @@ type
     Registered: TDateTime;
     Rating: Integer;
     Oppinion: string;
-    procedure Validate;
   end;
 
 procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
@@ -256,10 +255,25 @@ var
   isValid: Boolean;
 begin
   isValid := jsReviewer.Values['rating'] is TJSONNumber and
-    JsonValueIsIsoDate (jsReviewer.Values['registered']);
+    JsonValueIsIsoDate(jsReviewer.Values['registered']);
   if not isValid then
     raise Exception.Create('Invalid reviewer JOSN record: ' +
       jsReviewer.ToString);
+end;
+
+function RatingsToString(const ARattings: array of Integer): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to Length(ARattings) - 1 do
+  begin
+    if i = 0 then
+      Result := Result + ARattings[i].ToString
+  else
+    Result := Result + ', ' + ARattings[i].ToString;
+end;
+Result := Result + ']';
 end;
 
 { TODO 2: [A] Method is too large. Comments is showing separate methods }
@@ -268,29 +282,27 @@ var
   b: TBook;
   jsBookReviews: TJSONArray;
   jsBook: TJSONObject;
-  b2: TBook;
   jsReviewers: TJSONArray;
   i: Integer;
   j: Integer;
   jsReviewer: TJSONObject;
   Review: TReview;
   isbn: string;
+  AllRatings: array of Integer;
+  RatingsAsString: string;
 
   frm: TFrameImport;
   DBGrid1: TDBGrid;
   DataSrc1: TDataSource;
   DBGrid2: TDBGrid;
   DataSrc2: TDataSource;
-  AllRatings: array of Integer;
-  v: string;
-  dtReported: TDateTime;
 begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  jsBookReviews := CloudBooksDM.ConstructAndGetReviews('2019-08-01');
+  jsBookReviews := CloudBookReviews.ConstructAndGetReviews('2019-08-01');
   try
     // ----------------------------------------------------------
     // ----------------------------------------------------------
@@ -302,7 +314,7 @@ begin
     begin
       jsBook := jsBookReviews.Items[i] as TJSONObject;
       isbn := jsBook.Values['isbn'].Value;
-      if FBooksConfig.GetBookList(blkAll).FindByISBN(b.isbn) = nil then
+      if FBooksConfig.GetBookList(blkAll).FindByISBN(isbn) = nil then
       begin
         b := TBook.Create;
         b.title := jsBook.Values['title'].Value;
@@ -340,7 +352,7 @@ begin
         // Read JSON object
         //
         { TODO 3: [A] Move this code into record TReaderReport.LoadFromJSON }
-        jsReviewer := jsReviewers.Items[i] as TJSONObject;
+        jsReviewer := jsReviewers.Items[j] as TJSONObject;
         // ----------------------------------------------------------------
         ValidateJsonReviewer(jsReviewer);
         // ----------------------------------------------------------------
@@ -348,7 +360,7 @@ begin
         begin
           ReporterID := jsReviewer.Values['reporter-id'].Value;
           Registered := JsonValueAsIsoDate(jsReviewer.Values['registered']);
-          rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
+          Rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
           // Contact: string;
           if fieldAvaliable(jsReviewer.Values['firstname']) then
             FirstName := jsReviewer.Values['firstname'].Value
@@ -373,23 +385,24 @@ begin
           // Fields: ReaderId, FirstName, LastName, Email, Company, BooksRead,
           // LastReport, ReadersCreated
           //
-          DataModMain.fdqReaders.AppendRecord([Review.ReporterID,
-            Review.FirstName, Review.LastName, NULL, Review.Registered]);
+          DataModMain.fdqReaders.AppendRecord
+            ([Review.ReporterID, Review.FirstName, Review.LastName, Null,
+            Review.Registered]);
         end;
         // ----------------------------------------------------------------
         //
         // Append report into the database:
         // Fields: ReaderId, ISBN, Rating, Oppinion, Reported
         //
-        DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
-          Review.rating, Review.Oppinion, Review.Registered]);
+        DataModMain.fdqReports.AppendRecord([Review.ReporterID, isbn,
+          Review.Rating, Review.Oppinion, Review.Registered]);
         // ----------------------------------------------------------------
-        Insert([rating], AllRatings, maxInt);
+        Insert([Review.Rating], AllRatings, maxInt);
       end;
     end;
     RatingsAsString := RatingsToString(AllRatings);
   finally
-    jsReviews.Free;
+    jsBookReviews.Free;
   end;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
@@ -565,6 +578,9 @@ begin
   tmrAppReady.Enabled := False;
   if FApplicationInDeveloperMode then
     ReportMemoryLeaksOnShutdown := True;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  CloudBookReviews := TCloudBookReviews.Create(Self);
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
