@@ -53,6 +53,7 @@ type
     procedure BuildTabbedInterface;
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
+    procedure OnFormReady;
   end;
 
 var
@@ -81,6 +82,117 @@ resourcestring
 function DBVersionToString(VerDB: Integer): string;
 begin
   Result := (VerDB div 1000).ToString + '.' + (VerDB mod 1000).ToString;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+var
+  Extention: string;
+  ExeName: string;
+  ProjectFileName: string;
+begin
+  // ----------------------------------------------------------
+  // Check: If we are in developer mode
+  //
+  // Developer mode id used to change application configuration
+  // during test
+  { TODO 2: [Helper] TApplication.IsDeveloperMode }
+{$IFDEF DEBUG}
+  Extention := '.dpr';
+  ExeName := ExtractFileName(Application.ExeName);
+  ProjectFileName := ChangeFileExt(ExeName, Extention);
+  FApplicationInDeveloperMode := FileExists(ProjectFileName) or
+    FileExists('..\..\' + ProjectFileName);
+{$ELSE}
+  // To rename attribute (variable in the object) FDevMod I'm using buiid in
+  // IDE refactoring which is great, but be aware:
+  // Refactoring [Rename Variable] can't find this place :-(
+  FDevMod := False;
+{$ENDIF}
+  if FApplicationInDeveloperMode then
+    ReportMemoryLeaksOnShutdown := True;
+  CloudBookReviews := TCloudBookReviews.Create(Self);
+  BuildTabbedInterface;
+end;
+
+procedure TForm1.tmrAppReadyTimer(Sender: TObject);
+begin
+  tmrAppReady.Enabled := False;
+  OnFormReady;
+end;
+
+procedure TForm1.OnFormReady();
+var
+  frm: TFrameWelcome;
+  VersionNr: Integer;
+begin
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // Create and show Welcome Frame
+  //
+  frm := ConstructNewVisualTab(TFrameWelcome, 'Welcome') as TFrameWelcome;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // 1. Delete SQLite database file (demo application)
+  // 2. Check ConnectionDefifnion / define if not avaliable
+  // 3. Open connection - connect to database server
+  // 4. Read Database Version from SQL server
+  // 5. Upgrade DB structureto current version or build it from scratch
+  // 3.
+  //
+  DataModMain.BaseDataDirecory := ExtractFilePath(Application.ExeName);
+  try
+    DataModMain.DeleteDatabase();
+  except
+    on E: EMainDatamoduleError do
+    begin
+      frm.AddInfo(0, E.MessageApplication, True);
+      frm.AddInfo(1, E.MessageFireDac, False);
+      exit;
+    end;
+  end;
+  DataModMain.SetupConnectionDefinition();
+  try
+    DataModMain.OpenConnection;
+  except
+    on E: EMainDatamoduleError do
+    begin
+      frm.AddInfo(0, E.MessageApplication, True);
+      frm.AddInfo(1, E.MessageFireDac, False);
+      exit;
+    end;
+  end;
+  VersionNr := DataModMain.GetDatabaseVersion;
+  if VersionNr < ExpectedDatabaseVersionNr then
+    UpgradeDataModule.ExecuteUpgrade(VersionNr)
+  else if VersionNr > ExpectedDatabaseVersionNr then
+  begin
+    frm.AddInfo(0, StrNotSupportedDBVersion, True);
+    frm.AddInfo(1, 'Current supported version by application: ' +
+      DBVersionToString(ExpectedDatabaseVersionNr), True);
+    frm.AddInfo(1, 'Database version: ' + DBVersionToString(VersionNr), True);
+  end;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  DataModMain.OpenDataSets;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // TBooksListBoxConfigurator.PrepareListBoxes =
+  //   1. Initialize ListBox'es for books
+  //   2. (!!!!) Load books form database through experimental IBooksDAO
+  //   3. Setup drag&drop functionality for two list boxes
+  //   4. Setup OwnerDraw mode
+  //
+  FBooksConfig := TBooksListBoxConfigurator.Create(Self);
+  FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
+  // ----------------------------------------------------------
+  if FApplicationInDeveloperMode and InInternalQualityMode then
+  begin
+    BuildDBGridForBooks_InternalQA(frm);
+  end;
 end;
 
 procedure TForm1.FormResize(Sender: TObject);
@@ -237,6 +349,21 @@ begin
   tab := ChromeTabs1.Tabs.Add;
   tab.Caption := Caption;
   tab.Data := Result;
+end;
+
+procedure TForm1.BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
+var
+  datasrc: TDataSource;
+  DataGrid: TDBGrid;
+begin
+  datasrc := TDataSource.Create(frm);
+  DataGrid := TDBGrid.Create(frm);
+  DataGrid.AlignWithMargins := True;
+  DataGrid.Parent := frm;
+  DataGrid.Align := alClient;
+  DataGrid.DataSource := datasrc;
+  datasrc.DataSet := DataModMain.fdqBooks;
+  AutoSizeColumns(DataGrid);
 end;
 
 type
@@ -497,33 +624,6 @@ begin
   end;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
-var
-  Extention: string;
-  ExeName: string;
-  ProjectFileName: string;
-begin
-  // ----------------------------------------------------------
-  // Check: If we are in developer mode
-  //
-  // Developer mode id used to change application configuration
-  // during test
-  { TODO 2: [Helper] TApplication.IsDeveloperMode }
-{$IFDEF DEBUG}
-  Extention := '.dpr';
-  ExeName := ExtractFileName(Application.ExeName);
-  ProjectFileName := ChangeFileExt(ExeName, Extention);
-  FApplicationInDeveloperMode := FileExists(ProjectFileName) or
-    FileExists('..\..\' + ProjectFileName);
-{$ELSE}
-  // To rename attribute (variable in the object) FDevMod I'm using buiid in
-  // IDE refactoring which is great, but be aware:
-  // Refactoring [Rename Variable] can't find this place :-(
-  FDevMod := False;
-{$ENDIF}
-  BuildTabbedInterface;
-end;
-
 procedure TForm1.AutoSizeBooksGroupBoxes();
 var
   sum: Integer;
@@ -550,109 +650,9 @@ begin
   lbxBooksReaded.Height := avaliable div 2;
 end;
 
-procedure TForm1.BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
-var
-  datasrc: TDataSource;
-  DataGrid: TDBGrid;
-begin
-  datasrc := TDataSource.Create(frm);
-  DataGrid := TDBGrid.Create(frm);
-  DataGrid.AlignWithMargins := True;
-  DataGrid.Parent := frm;
-  DataGrid.Align := alClient;
-  DataGrid.DataSource := datasrc;
-  datasrc.DataSet := DataModMain.fdqBooks;
-  AutoSizeColumns(DataGrid);
-end;
-
 procedure TForm1.Splitter1Moved(Sender: TObject);
 begin
   (Sender as TSplitter).Tag := 1;
-end;
-
-procedure TForm1.tmrAppReadyTimer(Sender: TObject);
-var
-  frm: TFrameWelcome;
-  VersionNr: Integer;
-begin
-  tmrAppReady.Enabled := False;
-  if FApplicationInDeveloperMode then
-    ReportMemoryLeaksOnShutdown := True;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  CloudBookReviews := TCloudBookReviews.Create(Self);
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Create and show Welcome Frame
-  //
-  frm := ConstructNewVisualTab(TFrameWelcome, 'Welcome') as TFrameWelcome;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Connect to database server
-  // Check application user and database structure (DB version)
-  //
-  DataModMain.BaseDataDirecory := ExtractFilePath(Application.ExeName);
-  try
-    DataModMain.DeleteDatabase();
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  DataModMain.SetupConnectionDefinition();
-  try
-    DataModMain.OpenConnection;
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  try
-    VersionNr := DataModMain.GetDatabaseVersion;
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  if VersionNr < ExpectedDatabaseVersionNr then
-    UpgradeDataModule.ExecuteUpgrade(VersionNr)
-  else if VersionNr > ExpectedDatabaseVersionNr then
-  begin
-    frm.AddInfo(0, StrNotSupportedDBVersion, True);
-    frm.AddInfo(1, 'Current supported version by application: ' +
-      DBVersionToString(ExpectedDatabaseVersionNr), True);
-    frm.AddInfo(1, 'Database version: ' + DBVersionToString(VersionNr), True);
-  end;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  DataModMain.OpenDataSets;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // * Initialize ListBox'es for books
-  // * Load books form database
-  // * Setup drag&drop functionality for two list boxes
-  // * Setup OwnerDraw mode
-  //
-  FBooksConfig := TBooksListBoxConfigurator.Create(Self);
-  FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
-  // ----------------------------------------------------------
-  if FApplicationInDeveloperMode and InInternalQualityMode then
-  begin
-    BuildDBGridForBooks_InternalQA(frm);
-  end;
 end;
 
 end.
