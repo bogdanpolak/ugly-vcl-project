@@ -35,10 +35,14 @@ uses
 
 function TWebModule1.BuildReviewsList(const StartDate: string): string;
 var
-  ListName: string;
+  listName: string;
+  jsCatalog: TJSONArray;
 begin
-  ListName := 'list_' + StartDate.Substring(0, 4) + StartDate.Substring(5, 2);
-  Result := (jsonBooksCatalog.Values[ListName] as TJSONArray).ToString
+  listName := 'list_' + StartDate.Substring(0, 4) + StartDate.Substring(5, 2);
+  if jsonBooksCatalog.TryGetValue<TJSONArray>(listName, jsCatalog) then
+    Result := jsCatalog.ToString
+  else
+    Result := '[]';
 end;
 
 function TWebModule1.GetBookReview (const BookReviewID: string): string;
