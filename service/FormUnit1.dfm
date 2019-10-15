@@ -1,7 +1,7 @@
 object Form1: TForm1
   Left = 271
   Top = 114
-  Caption = 'CloudyBooks - ver 1.1'
+  Caption = 'CloudyBooks - ver 1.2'
   ClientHeight = 326
   ClientWidth = 368
   Color = clBtnFace
