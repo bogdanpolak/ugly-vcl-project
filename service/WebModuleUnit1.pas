@@ -18,7 +18,8 @@ type
     function BuildReviewsList(const StartDate: string): string;
     function GetBookReview(const BookReviewID: string): string;
   public
-    { Public declarations }
+    class var
+      RequestDelayMs: integer;
   end;
 
 var
@@ -74,7 +75,8 @@ begin
   begin
     try
       StartDate := Request.QueryFields.Values['startdate'];
-      Response.Content := BuildReviewsList(StartDate)
+      Response.Content := BuildReviewsList(StartDate);
+      TThread.Sleep(RequestDelayMs);
     except
       Response.StatusCode := 400;
       Response.Content := '{"message":"Invalid startdate"}';
@@ -85,6 +87,7 @@ begin
     try
       BookReviewID := Request.PathInfo.Substring(14, 99);
       Response.Content := GetBookReview(BookReviewID);
+      TThread.Sleep(RequestDelayMs);
     except
       Response.StatusCode := 400;
       Response.Content := '{"message":"Invalid BookReview ID"}';

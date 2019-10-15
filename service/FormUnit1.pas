@@ -6,7 +6,7 @@ uses
   Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.AppEvnts, Vcl.StdCtrls, IdHTTPWebBrokerBridge, Web.HTTPApp, Vcl.ExtCtrls,
-  Vcl.Menus;
+  Vcl.Menus, Vcl.Buttons;
 
 type
   TForm1 = class(TForm)
@@ -24,6 +24,10 @@ type
     Shape1: TShape;
     pmnListbox: TPopupMenu;
     pmnItemCopyURL: TMenuItem;
+    GroupBox1: TGroupBox;
+    SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    SpeedButton3: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
     procedure ButtonStartClick(Sender: TObject);
@@ -32,6 +36,7 @@ type
     procedure tmrAppStartupTimer(Sender: TObject);
     procedure pmnItemCopyURLClick(Sender: TObject);
     procedure ListBox1DblClick(Sender: TObject);
+    procedure SpeedButtonDelayClick(Sender: TObject);
   private
     FServer: TIdHTTPWebBrokerBridge;
     procedure StartServer;
@@ -51,7 +56,7 @@ implementation
 uses
   System.Math,
   Winapi.Windows, Winapi.ShellApi,
-  Vcl.Clipbrd;
+  Vcl.Clipbrd, WebModuleUnit1;
 
 procedure TForm1.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
 begin
@@ -108,6 +113,11 @@ procedure TForm1.pmnItemCopyURLClick(Sender: TObject);
 begin
   Clipboard.AsText := Format('http://localhost:%s%s',
     [EditPort.Text, ListBox1.Items[ListBox1.ItemIndex]]);
+end;
+
+procedure TForm1.SpeedButtonDelayClick(Sender: TObject);
+begin
+  TWebModule1.RequestDelayMs := (Sender as TSpeedButton).Tag;
 end;
 
 procedure TForm1.StartServer;

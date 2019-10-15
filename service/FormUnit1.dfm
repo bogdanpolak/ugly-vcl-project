@@ -2,7 +2,7 @@ object Form1: TForm1
   Left = 271
   Top = 114
   Caption = 'CloudyBooks - ver 1.2'
-  ClientHeight = 326
+  ClientHeight = 393	
   ClientWidth = 368
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,19 +19,19 @@ object Form1: TForm1
     Left = 3
     Top = 3
     Width = 362
-    Height = 114
+    Height = 174
     Align = alTop
     Caption = 'Server Controls'
     TabOrder = 0
     object Shape1: TShape
       AlignWithMargins = True
-      Left = 303
+      Left = 288
       Top = 18
-      Width = 54
-      Height = 91
+      Width = 69
+      Height = 92
       Align = alRight
       Pen.Color = clGray
-      ExplicitLeft = 208
+      ExplicitHeight = 75
     end
     object ButtonStart: TButton
       Left = 16
@@ -69,24 +69,80 @@ object Form1: TForm1
         Text = '4040'
       end
     end
+    object GroupBox1: TGroupBox
+      AlignWithMargins = True
+      Left = 15
+      Top = 116
+      Width = 342
+      Height = 50
+      Margins.Left = 13
+      Margins.Bottom = 6
+      Align = alBottom
+      Caption = 'Additional delay (in ieach response)'
+      TabOrder = 3
+      ExplicitTop = 111
+      object SpeedButton1: TSpeedButton
+        AlignWithMargins = True
+        Left = 5
+        Top = 18
+        Width = 108
+        Height = 27
+        Margins.Right = 0
+        Align = alLeft
+        GroupIndex = 1
+        Down = True
+        Caption = 'no delay'
+        OnClick = SpeedButtonDelayClick
+      end
+      object SpeedButton2: TSpeedButton
+        Tag = 100
+        AlignWithMargins = True
+        Left = 113
+        Top = 18
+        Width = 108
+        Height = 27
+        Margins.Left = 0
+        Margins.Right = 0
+        Align = alLeft
+        GroupIndex = 1
+        Caption = '100 ms'
+        OnClick = SpeedButtonDelayClick
+      end
+      object SpeedButton3: TSpeedButton
+        Tag = 500
+        AlignWithMargins = True
+        Left = 221
+        Top = 18
+        Width = 108
+        Height = 27
+        Margins.Left = 0
+        Align = alLeft
+        GroupIndex = 1
+        Caption = '500 ms'
+        OnClick = SpeedButtonDelayClick
+      end
+    end
   end
   object grbxOpenBrowser: TGroupBox
     AlignWithMargins = True
     Left = 3
-    Top = 123
+    Top = 190
     Width = 362
     Height = 200
+    Margins.Top = 10
     Align = alClient
     Caption = 'Open Browser'
     TabOrder = 1
+    ExplicitTop = 123
     object Label1: TLabel
       AlignWithMargins = True
       Left = 5
-      Top = 49
+      Top = 55
       Width = 352
       Height = 13
       Align = alTop
       Caption = 'Site path:'
+      ExplicitTop = 49
       ExplicitWidth = 47
     end
     object ButtonOpenBrowser: TButton
@@ -94,7 +150,7 @@ object Form1: TForm1
       Left = 5
       Top = 18
       Width = 352
-      Height = 25
+      Height = 31
       Align = alTop
       Caption = 'Open Browser'
       TabOrder = 0
@@ -103,9 +159,9 @@ object Form1: TForm1
     object ListBox1: TListBox
       AlignWithMargins = True
       Left = 5
-      Top = 68
+      Top = 74
       Width = 352
-      Height = 127
+      Height = 121
       Align = alClient
       ItemHeight = 13
       Items.Strings = (
@@ -118,6 +174,8 @@ object Form1: TForm1
       PopupMenu = pmnListbox
       TabOrder = 1
       OnDblClick = ListBox1DblClick
+      ExplicitTop = 68
+      ExplicitHeight = 127
     end
   end
   object ApplicationEvents1: TApplicationEvents
