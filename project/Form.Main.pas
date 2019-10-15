@@ -79,7 +79,7 @@ resourcestring
   StrNotSupportedDBVersion = 'Not supported database version. Please' +
     ' update database structures.';
 
-function DBVersionToString(VerDB: Integer): string;
+function DBVersionToString(VerDB: integer): string;
 begin
   Result := (VerDB div 1000).ToString + '.' + (VerDB mod 1000).ToString;
 end;
@@ -123,8 +123,9 @@ end;
 procedure TForm1.OnFormReady();
 var
   frm: TFrameWelcome;
-  VersionNr: Integer;
+  VersionNr: integer;
 begin
+  FetchBooksDataCounter := FirstMonthToFetchBooksData;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
@@ -181,10 +182,10 @@ begin
   // ----------------------------------------------------------
   //
   // TBooksListBoxConfigurator.PrepareListBoxes =
-  //   1. Initialize ListBox'es for books
-  //   2. (!!!!) Load books form database through experimental IBooksDAO
-  //   3. Setup drag&drop functionality for two list boxes
-  //   4. Setup OwnerDraw mode
+  // 1. Initialize ListBox'es for books
+  // 2. (!!!!) Load books form database through experimental IBooksDAO
+  // 3. Setup drag&drop functionality for two list boxes
+  // 4. Setup OwnerDraw mode
   //
   FBooksConfig := TBooksListBoxConfigurator.Create(Self);
   FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
@@ -202,14 +203,14 @@ end;
 
 { TODO 2: [Helper] TWinControl class helper }
 function SumHeightForChildrens(Parent: TWinControl;
-  ControlsToExclude: TArray<TControl>): Integer;
+  ControlsToExclude: TArray<TControl>): integer;
 var
-  i: Integer;
+  i: integer;
   ctrl: Vcl.Controls.TControl;
   isExcluded: Boolean;
-  j: Integer;
-  sumHeight: Integer;
-  ctrlHeight: Integer;
+  j: integer;
+  sumHeight: integer;
+  ctrlHeight: integer;
 begin
   sumHeight := 0;
   for i := 0 to Parent.ControlCount - 1 do
@@ -232,12 +233,12 @@ begin
 end;
 
 { TODO 2: [Helper] Extract into TDBGrid.ForEachRow class helper }
-function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: Integer = 25): Integer;
+function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: integer = 25): integer;
 var
   DataSet: TDataSet;
   Bookmark: TBookmark;
-  Count, i: Integer;
-  ColumnsWidth: array of Integer;
+  Count, i: integer;
+  ColumnsWidth: array of integer;
 begin
   SetLength(ColumnsWidth, DBGrid.Columns.Count);
   for i := 0 to DBGrid.Columns.Count - 1 do
@@ -299,7 +300,10 @@ var
 begin
   try
     dt := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
-    if dt>0 then Result := True else  Result := True;
+    if dt > 0 then
+      Result := True
+    else
+      Result := True;
   except
     on E: Exception do
       Result := False;
@@ -318,9 +322,9 @@ const
 var
   m: string;
   y: string;
-  i: Integer;
-  mm: Integer;
-  yy: Integer;
+  i: integer;
+  mm: integer;
+  yy: integer;
 begin
   m := s.Substring(0, 3);
   y := s.Substring(4);
@@ -373,7 +377,7 @@ type
     LastName: string;
     Contact: string;
     Registered: TDateTime;
-    Rating: Integer;
+    Rating: integer;
     Oppinion: string;
   end;
 
@@ -388,19 +392,19 @@ begin
       jsReviewer.ToString);
 end;
 
-function RatingsToString(const ARattings: array of Integer): string;
+function RatingsToString(const ARattings: array of integer): string;
 var
-  i: Integer;
+  i: integer;
 begin
   Result := '[';
   for i := 0 to Length(ARattings) - 1 do
   begin
     if i = 0 then
       Result := Result + ARattings[i].ToString
-  else
-    Result := Result + ', ' + ARattings[i].ToString;
-end;
-Result := Result + ']';
+    else
+      Result := Result + ', ' + ARattings[i].ToString;
+  end;
+  Result := Result + ']';
 end;
 
 { TODO 2: [A] Method is too large. Comments is showing separate methods }
@@ -410,12 +414,12 @@ var
   jsBookReviews: TJSONArray;
   jsBook: TJSONObject;
   jsReviewers: TJSONArray;
-  i: Integer;
-  j: Integer;
+  i: integer;
+  j: integer;
   jsReviewer: TJSONObject;
   Review: TReview;
   isbn: string;
-  AllRatings: array of Integer;
+  AllRatings: array of integer;
   RatingsAsString: string;
 
   frm: TFrameImport;
@@ -626,9 +630,9 @@ end;
 
 procedure TForm1.AutoSizeBooksGroupBoxes();
 var
-  sum: Integer;
-  avaliable: Integer;
-  labelPixelHeight: Integer;
+  sum: integer;
+  avaliable: integer;
+  labelPixelHeight: integer;
 begin
   { TODO 3: Move into TBooksListBoxConfigurator }
   with TBitmap.Create do
