@@ -23,6 +23,9 @@ type
   TFrameClass = class of TFrame;
 
   TForm1 = class(TForm)
+  const
+    FirstMonthToFetchBooksData = 8; { 8, 9, 10-empty data }
+  published
     GroupBox1: TGroupBox;
     lbBooksReaded: TLabel;
     Splitter1: TSplitter;
@@ -45,12 +48,14 @@ type
     pnMain: TPanel;
     ChromeTabs1: TChromeTabs;
   private
+    FetchBooksDataCounter: integer;
     FBooksConfig: TBooksListBoxConfigurator;
     CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
     procedure AutoSizeBooksGroupBoxes();
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
     procedure BuildTabbedInterface;
+    function FindTab(FreameClass: TFrameClass; const Caption: string): TFrame;
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
     procedure OnFormReady;
@@ -338,6 +343,26 @@ begin
   Result := EncodeDate(yy, mm, 1);
 end;
 
+function TForm1.FindTab(FreameClass: TFrameClass;
+  const Caption: string): TFrame;
+var
+  i: Integer;
+  ATab: TChromeTab;
+  AObj: TObject;
+begin
+  for i := 0 to ChromeTabs1.Tabs.Count-1 do
+  begin
+    ATab := ChromeTabs1.Tabs[i];
+    AObj := TObject(ATab.Data);
+    if (ATab.Caption = Caption) and (AObj<>nil) and (AObj.ClassType = FreameClass) then
+    begin
+      Result := AObj as TFrame;
+      exit;
+    end;
+  end;
+  Result := nil;
+end;
+
 function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
   const Caption: string): TFrame;
 var
@@ -427,13 +452,17 @@ var
   DataSrc1: TDataSource;
   DBGrid2: TDBGrid;
   DataSrc2: TDataSource;
+  dtLoadDataSince: string;
 begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  jsBookReviews := CloudBookReviews.ConstructAndGetReviews('2019-08-01');
+  dtLoadDataSince := Format('2019-%.2d-01', [FetchBooksDataCounter]);
+  if FetchBooksDataCounter < 12 then
+    Inc(FetchBooksDataCounter);
+  jsBookReviews := CloudBookReviews.ConstructAndGetReviews(dtLoadDataSince);
   try
     // ----------------------------------------------------------
     // ----------------------------------------------------------
@@ -539,7 +568,9 @@ begin
   // ----------------------------------------------------------
   //
   // Create and show import frame
-  frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
+  frm := FindTab(TFrameImport, 'Readers') as TFrameImport;
+  if frm=nil then
+    frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
