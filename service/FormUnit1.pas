@@ -72,7 +72,6 @@ begin
   ShellExecute(0, nil, PChar(LURL), nil, nil, SW_SHOWNOACTIVATE);
 end;
 
-
 procedure TForm1.ButtonOpenBrowserClick(Sender: TObject);
 begin
   ExecuteOpenBrowser;
