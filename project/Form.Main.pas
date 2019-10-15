@@ -16,12 +16,16 @@ uses
   Frame.Welcome,
   {TODO 3: [D] Resolve dependency on ExtGUI.ListBox.Books. Too tightly coupled}
   // Dependency is requred by attribute TBooksListBoxConfigurator
-  ExtGUI.ListBox.Books;
+  ExtGUI.ListBox.Books,
+  Cloud.Books.Reviews;
 
 type
   TFrameClass = class of TFrame;
 
   TForm1 = class(TForm)
+  const
+    FirstMonthToFetchBooksData = 8; { 8, 9, 10-empty data }
+  published
     GroupBox1: TGroupBox;
     lbBooksReaded: TLabel;
     Splitter1: TSplitter;
@@ -44,13 +48,17 @@ type
     pnMain: TPanel;
     ChromeTabs1: TChromeTabs;
   private
+    FetchBooksDataCounter: integer;
     FBooksConfig: TBooksListBoxConfigurator;
+    CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
     procedure AutoSizeBooksGroupBoxes();
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
     procedure BuildTabbedInterface;
+    function FindTab(FreameClass: TFrameClass; const Caption: string): TFrame;
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
+    procedure OnFormReady;
   end;
 
 var
@@ -66,8 +74,7 @@ uses
   Utils.General,
   Frame.Import,
   Data.Main,
-  Data.UpgradeDatabase,
-  CloudBooks.Reviews_;
+  Data.UpgradeDatabase;
 
 const
   Client_API_Token = '20be805d-9cea27e2-a588efc5-1fceb84d-9fb4b67c';
@@ -77,9 +84,121 @@ resourcestring
   StrNotSupportedDBVersion = 'Not supported database version. Please' +
     ' update database structures.';
 
-function DBVersionToString(VerDB: Integer): string;
+function DBVersionToString(VerDB: integer): string;
 begin
   Result := (VerDB div 1000).ToString + '.' + (VerDB mod 1000).ToString;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+var
+  Extention: string;
+  ExeName: string;
+  ProjectFileName: string;
+begin
+  // ----------------------------------------------------------
+  // Check: If we are in developer mode
+  //
+  // Developer mode id used to change application configuration
+  // during test
+  { TODO 2: [Helper] TApplication.IsDeveloperMode }
+{$IFDEF DEBUG}
+  Extention := '.dpr';
+  ExeName := ExtractFileName(Application.ExeName);
+  ProjectFileName := ChangeFileExt(ExeName, Extention);
+  FApplicationInDeveloperMode := FileExists(ProjectFileName) or
+    FileExists('..\..\' + ProjectFileName);
+{$ELSE}
+  // To rename attribute (variable in the object) FDevMod I'm using buiid in
+  // IDE refactoring which is great, but be aware:
+  // Refactoring [Rename Variable] can't find this place :-(
+  FDevMod := False;
+{$ENDIF}
+  if FApplicationInDeveloperMode then
+    ReportMemoryLeaksOnShutdown := True;
+  CloudBookReviews := TCloudBookReviews.Create(Self);
+  BuildTabbedInterface;
+end;
+
+procedure TForm1.tmrAppReadyTimer(Sender: TObject);
+begin
+  tmrAppReady.Enabled := False;
+  OnFormReady;
+end;
+
+procedure TForm1.OnFormReady();
+var
+  frm: TFrameWelcome;
+  VersionNr: integer;
+begin
+  FetchBooksDataCounter := FirstMonthToFetchBooksData;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // Create and show Welcome Frame
+  //
+  frm := ConstructNewVisualTab(TFrameWelcome, 'Welcome') as TFrameWelcome;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // 1. Delete SQLite database file (demo application)
+  // 2. Check ConnectionDefifnion / define if not avaliable
+  // 3. Open connection - connect to database server
+  // 4. Read Database Version from SQL server
+  // 5. Upgrade DB structureto current version or build it from scratch
+  // 3.
+  //
+  DataModMain.BaseDataDirecory := ExtractFilePath(Application.ExeName);
+  try
+    DataModMain.DeleteDatabase();
+  except
+    on E: EMainDatamoduleError do
+    begin
+      frm.AddInfo(0, E.MessageApplication, True);
+      frm.AddInfo(1, E.MessageFireDac, False);
+      exit;
+    end;
+  end;
+  DataModMain.SetupConnectionDefinition();
+  try
+    DataModMain.OpenConnection;
+  except
+    on E: EMainDatamoduleError do
+    begin
+      frm.AddInfo(0, E.MessageApplication, True);
+      frm.AddInfo(1, E.MessageFireDac, False);
+      exit;
+    end;
+  end;
+  VersionNr := DataModMain.GetDatabaseVersion;
+  if VersionNr < ExpectedDatabaseVersionNr then
+    UpgradeDataModule.ExecuteUpgrade(VersionNr)
+  else if VersionNr > ExpectedDatabaseVersionNr then
+  begin
+    frm.AddInfo(0, StrNotSupportedDBVersion, True);
+    frm.AddInfo(1, 'Current supported version by application: ' +
+      DBVersionToString(ExpectedDatabaseVersionNr), True);
+    frm.AddInfo(1, 'Database version: ' + DBVersionToString(VersionNr), True);
+  end;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  DataModMain.OpenDataSets;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // TBooksListBoxConfigurator.PrepareListBoxes =
+  // 1. Initialize ListBox'es for books
+  // 2. (!!!!) Load books form database through experimental IBooksDAO
+  // 3. Setup drag&drop functionality for two list boxes
+  // 4. Setup OwnerDraw mode
+  //
+  FBooksConfig := TBooksListBoxConfigurator.Create(Self);
+  FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
+  // ----------------------------------------------------------
+  if FApplicationInDeveloperMode and InInternalQualityMode then
+  begin
+    BuildDBGridForBooks_InternalQA(frm);
+  end;
 end;
 
 procedure TForm1.FormResize(Sender: TObject);
@@ -89,14 +208,14 @@ end;
 
 { TODO 2: [Helper] TWinControl class helper }
 function SumHeightForChildrens(Parent: TWinControl;
-  ControlsToExclude: TArray<TControl>): Integer;
+  ControlsToExclude: TArray<TControl>): integer;
 var
-  i: Integer;
+  i: integer;
   ctrl: Vcl.Controls.TControl;
   isExcluded: Boolean;
-  j: Integer;
-  sumHeight: Integer;
-  ctrlHeight: Integer;
+  j: integer;
+  sumHeight: integer;
+  ctrlHeight: integer;
 begin
   sumHeight := 0;
   for i := 0 to Parent.ControlCount - 1 do
@@ -119,12 +238,12 @@ begin
 end;
 
 { TODO 2: [Helper] Extract into TDBGrid.ForEachRow class helper }
-function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: Integer = 25): Integer;
+function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: integer = 25): integer;
 var
   DataSet: TDataSet;
   Bookmark: TBookmark;
-  Count, i: Integer;
-  ColumnsWidth: array of Integer;
+  Count, i: integer;
+  ColumnsWidth: array of integer;
 begin
   SetLength(ColumnsWidth, DBGrid.Columns.Count);
   for i := 0 to DBGrid.Columns.Count - 1 do
@@ -184,10 +303,12 @@ function JsonValueIsIsoDate(jsValue: TJSONValue): Boolean;
 var
   dt: TDateTime;
 begin
-  dt := 0;
   try
     dt := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
-    Result := True;
+    if dt > 0 then
+      Result := True
+    else
+      Result := True;
   except
     on E: Exception do
       Result := False;
@@ -196,7 +317,7 @@ end;
 
 function JsonValueAsIsoDate(jsValue: TJSONValue): TDateTime;
 begin
-  result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
+  Result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
 end;
 
 function BooksToDateTime(const s: string): TDateTime;
@@ -206,9 +327,9 @@ const
 var
   m: string;
   y: string;
-  i: Integer;
-  mm: Integer;
-  yy: Integer;
+  i: integer;
+  mm: integer;
+  yy: integer;
 begin
   m := s.Substring(0, 3);
   y := s.Substring(4);
@@ -220,6 +341,27 @@ begin
     raise ERangeError.Create('Incorect mont name in the date: ' + s);
   yy := y.ToInteger();
   Result := EncodeDate(yy, mm, 1);
+end;
+
+function TForm1.FindTab(FreameClass: TFrameClass;
+  const Caption: string): TFrame;
+var
+  i: integer;
+  ATab: TChromeTab;
+  AObj: TObject;
+begin
+  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
+  begin
+    ATab := ChromeTabs1.Tabs[i];
+    AObj := TObject(ATab.Data);
+    if (ATab.Caption = Caption) and (AObj <> nil) and
+      (AObj.ClassType = FreameClass) then
+    begin
+      Result := AObj as TFrame;
+      exit;
+    end;
+  end;
+  Result := nil;
 end;
 
 function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
@@ -239,6 +381,21 @@ begin
   tab.Data := Result;
 end;
 
+procedure TForm1.BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
+var
+  datasrc: TDataSource;
+  DataGrid: TDBGrid;
+begin
+  datasrc := TDataSource.Create(frm);
+  DataGrid := TDBGrid.Create(frm);
+  DataGrid.AlignWithMargins := True;
+  DataGrid.Parent := frm;
+  DataGrid.Align := alClient;
+  DataGrid.DataSource := datasrc;
+  datasrc.DataSet := DataModMain.fdqBooks;
+  AutoSizeColumns(DataGrid);
+end;
+
 type
   TReview = record
     ReporterID: string;
@@ -246,9 +403,8 @@ type
     LastName: string;
     Contact: string;
     Registered: TDateTime;
-    Rating: Integer;
+    Rating: integer;
     Oppinion: string;
-    procedure Validate;
   end;
 
 procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
@@ -256,10 +412,25 @@ var
   isValid: Boolean;
 begin
   isValid := jsReviewer.Values['rating'] is TJSONNumber and
-    JsonValueIsIsoDate (jsReviewer.Values['registered']);
+    JsonValueIsIsoDate(jsReviewer.Values['registered']);
   if not isValid then
     raise Exception.Create('Invalid reviewer JOSN record: ' +
       jsReviewer.ToString);
+end;
+
+function RatingsToString(const ARattings: array of integer): string;
+var
+  i: integer;
+begin
+  Result := '[';
+  for i := 0 to Length(ARattings) - 1 do
+  begin
+    if i = 0 then
+      Result := Result + ARattings[i].ToString
+    else
+      Result := Result + ', ' + ARattings[i].ToString;
+  end;
+  Result := Result + ']';
 end;
 
 { TODO 2: [A] Method is too large. Comments is showing separate methods }
@@ -268,29 +439,31 @@ var
   b: TBook;
   jsBookReviews: TJSONArray;
   jsBook: TJSONObject;
-  b2: TBook;
   jsReviewers: TJSONArray;
-  i: Integer;
-  j: Integer;
+  i: integer;
+  j: integer;
   jsReviewer: TJSONObject;
   Review: TReview;
   isbn: string;
+  AllRatings: array of integer;
+  RatingsAsString: string;
 
   frm: TFrameImport;
   DBGrid1: TDBGrid;
   DataSrc1: TDataSource;
   DBGrid2: TDBGrid;
   DataSrc2: TDataSource;
-  AllRatings: array of Integer;
-  v: string;
-  dtReported: TDateTime;
+  dtLoadDataSince: string;
 begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  jsBookReviews := CloudBooksDM.ConstructAndGetReviews('2019-08-01');
+  dtLoadDataSince := Format('2019-%.2d-01', [FetchBooksDataCounter]);
+  if FetchBooksDataCounter < 12 then
+    Inc(FetchBooksDataCounter);
+  jsBookReviews := CloudBookReviews.ConstructAndGetReviews(dtLoadDataSince);
   try
     // ----------------------------------------------------------
     // ----------------------------------------------------------
@@ -302,7 +475,7 @@ begin
     begin
       jsBook := jsBookReviews.Items[i] as TJSONObject;
       isbn := jsBook.Values['isbn'].Value;
-      if FBooksConfig.GetBookList(blkAll).FindByISBN(b.isbn) = nil then
+      if FBooksConfig.GetBookList(blkAll).FindByISBN(isbn) = nil then
       begin
         b := TBook.Create;
         b.title := jsBook.Values['title'].Value;
@@ -340,7 +513,7 @@ begin
         // Read JSON object
         //
         { TODO 3: [A] Move this code into record TReaderReport.LoadFromJSON }
-        jsReviewer := jsReviewers.Items[i] as TJSONObject;
+        jsReviewer := jsReviewers.Items[j] as TJSONObject;
         // ----------------------------------------------------------------
         ValidateJsonReviewer(jsReviewer);
         // ----------------------------------------------------------------
@@ -348,7 +521,7 @@ begin
         begin
           ReporterID := jsReviewer.Values['reporter-id'].Value;
           Registered := JsonValueAsIsoDate(jsReviewer.Values['registered']);
-          rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
+          Rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
           // Contact: string;
           if fieldAvaliable(jsReviewer.Values['firstname']) then
             FirstName := jsReviewer.Values['firstname'].Value
@@ -373,29 +546,32 @@ begin
           // Fields: ReaderId, FirstName, LastName, Email, Company, BooksRead,
           // LastReport, ReadersCreated
           //
-          DataModMain.fdqReaders.AppendRecord([Review.ReporterID,
-            Review.FirstName, Review.LastName, NULL, Review.Registered]);
+          DataModMain.fdqReaders.AppendRecord
+            ([Review.ReporterID, Review.FirstName, Review.LastName, Null,
+            Review.Registered]);
         end;
         // ----------------------------------------------------------------
         //
         // Append report into the database:
         // Fields: ReaderId, ISBN, Rating, Oppinion, Reported
         //
-        DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
-          Review.rating, Review.Oppinion, Review.Registered]);
+        DataModMain.fdqReports.AppendRecord([Review.ReporterID, isbn,
+          Review.Rating, Review.Oppinion, Review.Registered]);
         // ----------------------------------------------------------------
-        Insert([rating], AllRatings, maxInt);
+        Insert([Review.Rating], AllRatings, maxInt);
       end;
     end;
     RatingsAsString := RatingsToString(AllRatings);
   finally
-    jsReviews.Free;
+    jsBookReviews.Free;
   end;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
   // Create and show import frame
-  frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
+  frm := FindTab(TFrameImport, 'Readers') as TFrameImport;
+  if frm = nil then
+    frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
@@ -484,38 +660,11 @@ begin
   end;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
-var
-  Extention: string;
-  ExeName: string;
-  ProjectFileName: string;
-begin
-  // ----------------------------------------------------------
-  // Check: If we are in developer mode
-  //
-  // Developer mode id used to change application configuration
-  // during test
-  { TODO 2: [Helper] TApplication.IsDeveloperMode }
-{$IFDEF DEBUG}
-  Extention := '.dpr';
-  ExeName := ExtractFileName(Application.ExeName);
-  ProjectFileName := ChangeFileExt(ExeName, Extention);
-  FApplicationInDeveloperMode := FileExists(ProjectFileName) or
-    FileExists('..\..\' + ProjectFileName);
-{$ELSE}
-  // To rename attribute (variable in the object) FDevMod I'm using buiid in
-  // IDE refactoring which is great, but be aware:
-  // Refactoring [Rename Variable] can't find this place :-(
-  FDevMod := False;
-{$ENDIF}
-  BuildTabbedInterface;
-end;
-
 procedure TForm1.AutoSizeBooksGroupBoxes();
 var
-  sum: Integer;
-  avaliable: Integer;
-  labelPixelHeight: Integer;
+  sum: integer;
+  avaliable: integer;
+  labelPixelHeight: integer;
 begin
   { TODO 3: Move into TBooksListBoxConfigurator }
   with TBitmap.Create do
@@ -537,106 +686,9 @@ begin
   lbxBooksReaded.Height := avaliable div 2;
 end;
 
-procedure TForm1.BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
-var
-  datasrc: TDataSource;
-  DataGrid: TDBGrid;
-begin
-  datasrc := TDataSource.Create(frm);
-  DataGrid := TDBGrid.Create(frm);
-  DataGrid.AlignWithMargins := True;
-  DataGrid.Parent := frm;
-  DataGrid.Align := alClient;
-  DataGrid.DataSource := datasrc;
-  datasrc.DataSet := DataModMain.fdqBooks;
-  AutoSizeColumns(DataGrid);
-end;
-
 procedure TForm1.Splitter1Moved(Sender: TObject);
 begin
   (Sender as TSplitter).Tag := 1;
-end;
-
-procedure TForm1.tmrAppReadyTimer(Sender: TObject);
-var
-  frm: TFrameWelcome;
-  VersionNr: Integer;
-begin
-  tmrAppReady.Enabled := False;
-  if FApplicationInDeveloperMode then
-    ReportMemoryLeaksOnShutdown := True;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Create and show Welcome Frame
-  //
-  frm := ConstructNewVisualTab(TFrameWelcome, 'Welcome') as TFrameWelcome;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Connect to database server
-  // Check application user and database structure (DB version)
-  //
-  DataModMain.BaseDataDirecory := ExtractFilePath(Application.ExeName);
-  try
-    DataModMain.DeleteDatabase();
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  DataModMain.SetupConnectionDefinition();
-  try
-    DataModMain.OpenConnection;
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  try
-    VersionNr := DataModMain.GetDatabaseVersion;
-  except
-    on E: EMainDatamoduleError do
-    begin
-      frm.AddInfo(0, E.MessageApplication, True);
-      frm.AddInfo(1, E.MessageFireDac, False);
-      exit;
-    end;
-  end;
-  if VersionNr < ExpectedDatabaseVersionNr then
-    UpgradeDataModule.ExecuteUpgrade(VersionNr)
-  else if VersionNr > ExpectedDatabaseVersionNr then
-  begin
-    frm.AddInfo(0, StrNotSupportedDBVersion, True);
-    frm.AddInfo(1, 'Current supported version by application: ' +
-      DBVersionToString(ExpectedDatabaseVersionNr), True);
-    frm.AddInfo(1, 'Database version: ' + DBVersionToString(VersionNr), True);
-  end;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  DataModMain.OpenDataSets;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // * Initialize ListBox'es for books
-  // * Load books form database
-  // * Setup drag&drop functionality for two list boxes
-  // * Setup OwnerDraw mode
-  //
-  FBooksConfig := TBooksListBoxConfigurator.Create(Self);
-  FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
-  // ----------------------------------------------------------
-  if FApplicationInDeveloperMode and InInternalQualityMode then
-  begin
-    BuildDBGridForBooks_InternalQA(frm);
-  end;
 end;
 
 end.

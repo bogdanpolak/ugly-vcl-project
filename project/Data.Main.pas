@@ -63,8 +63,7 @@ implementation
 uses
   System.Variants,
   Consts.SQL,
-  Utils.CipherAES128,
-  ClientAPI.Books;
+  Utils.CipherAES128;
 
 resourcestring
   SDBServerGone = 'Database server is gone';
@@ -152,8 +151,34 @@ begin
   fdqReports.Open;
 end;
 
+
+// TODO 2 : [Helper] TFDConnection class helper with 3 functions:
+//   1. IsExistTable
+//   2. IsExistView
+//   3. IsExistSystemTable
+function isTableExists (const ATableName: string; isUserTable: boolean;
+  AFDConnection: TFDConnection): boolean;
+var
+  sl: TStringList;
+  idx: Integer;
+begin
+  sl := TStringList.Create;
+  try
+    AFDConnection.GetTableNames('','','',sl,[osMy],[tkTable, tkView]);
+    idx := sl.IndexOf(ATableName);
+    Result := (idx>=0);
+  finally
+    sl.Free;
+  end;
+end;
+
 function TDataModMain.GetDatabaseVersion: integer;
 begin
+  if not isTableExists(TableInfo, true, FDConnection1) then
+  begin
+    Result := 0;
+    exit;
+  end;
   try
     Result := FDConnection1.ExecSQLScalar(SQL_SELECT_DatabaseVersion);
   except

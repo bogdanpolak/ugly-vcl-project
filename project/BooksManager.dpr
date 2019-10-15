@@ -15,12 +15,10 @@ uses
   DataAccess.Base in 'experimental\DataAccess.Base.pas',
   DataAccess.Books in 'experimental\DataAccess.Books.pas',
   DataAccess.Books.FireDAC in 'experimental\DataAccess.Books.FireDAC.pas',
-  ClientAPI.Books in 'api\ClientAPI.Books.pas',
-  ClientAPI.Readers in 'api\ClientAPI.Readers.pas',
   ExtGUI.ListBox.Books in 'ExtGUI.ListBox.Books.pas',
   Consts.SQL in 'Consts.SQL.pas',
   Data.UpgradeDatabase in 'Data.UpgradeDatabase.pas' {UpgradeDataModule: TDataModule},
-  CloudBooks.Reviews_ in 'api\CloudBooks.Reviews_.pas' {CloudBooksDM: TDataModule};
+  Cloud.Books.Reviews in 'Cloud.Books.Reviews.pas';
 
 {$R *.res}
 
@@ -30,6 +28,5 @@ begin
   Application.CreateForm(TForm1, Form1);
   Application.CreateForm(TDataModMain, DataModMain);
   Application.CreateForm(TUpgradeDataModule, UpgradeDataModule);
-  Application.CreateForm(TCloudBooksDM, CloudBooksDM);
   Application.Run;
 end.
