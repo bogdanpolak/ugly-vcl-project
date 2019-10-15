@@ -7,7 +7,8 @@ interface
 // ----------------------------------------------------------------
 
 const
- SQL_SELECT_DatabaseVersion = 'SELECT versionnr FROM DBInfo';
+  TableInfo = 'DBInfo';
+  SQL_SELECT_DatabaseVersion = 'SELECT versionnr FROM '+TableInfo;
 
 implementation
 
