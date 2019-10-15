@@ -16,7 +16,7 @@ type
   private
     jsonBooksCatalog: TJSONObject;
     function BuildReviewsList(const StartDate: string): string;
-    function GetBookReview (const BookReviewID: string): string;
+    function GetBookReview(const BookReviewID: string): string;
   public
     { Public declarations }
   end;
@@ -45,11 +45,11 @@ begin
     Result := '[]';
 end;
 
-function TWebModule1.GetBookReview (const BookReviewID: string): string;
+function TWebModule1.GetBookReview(const BookReviewID: string): string;
 var
   jsBookReview: TJSONObject;
 begin
-  if jsonBooksCatalog.TryGetValue<TJSONObject>(BookReviewID,jsBookReview) then
+  if jsonBooksCatalog.TryGetValue<TJSONObject>(BookReviewID, jsBookReview) then
     Result := jsBookReview.ToString
   else
     raise Exception.Create('');
@@ -83,7 +83,7 @@ begin
   else if Request.PathInfo.Contains('/books/review/') then
   begin
     try
-      BookReviewID := Request.PathInfo.Substring(14,99);
+      BookReviewID := Request.PathInfo.Substring(14, 99);
       Response.Content := GetBookReview(BookReviewID);
     except
       Response.StatusCode := 400;
