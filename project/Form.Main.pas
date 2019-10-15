@@ -346,15 +346,16 @@ end;
 function TForm1.FindTab(FreameClass: TFrameClass;
   const Caption: string): TFrame;
 var
-  i: Integer;
+  i: integer;
   ATab: TChromeTab;
   AObj: TObject;
 begin
-  for i := 0 to ChromeTabs1.Tabs.Count-1 do
+  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
   begin
     ATab := ChromeTabs1.Tabs[i];
     AObj := TObject(ATab.Data);
-    if (ATab.Caption = Caption) and (AObj<>nil) and (AObj.ClassType = FreameClass) then
+    if (ATab.Caption = Caption) and (AObj <> nil) and
+      (AObj.ClassType = FreameClass) then
     begin
       Result := AObj as TFrame;
       exit;
@@ -569,7 +570,7 @@ begin
   //
   // Create and show import frame
   frm := FindTab(TFrameImport, 'Readers') as TFrameImport;
-  if frm=nil then
+  if frm = nil then
     frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
