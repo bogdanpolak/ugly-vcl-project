@@ -2,8 +2,8 @@ object Form1: TForm1
   Left = 0
   Top = 0
   Caption = 'Form1'
-  ClientHeight = 431
-  ClientWidth = 745
+  ClientHeight = 507
+  ClientWidth = 905
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object Form1: TForm1
     Left = 238
     Top = 0
     Width = 5
-    Height = 431
+    Height = 507
     ExplicitLeft = 193
     ExplicitHeight = 405
   end
@@ -27,7 +27,7 @@ object Form1: TForm1
     Left = 3
     Top = 2
     Width = 235
-    Height = 426
+    Height = 502
     Margins.Top = 2
     Margins.Right = 0
     Align = alLeft
@@ -41,6 +41,7 @@ object Form1: TForm1
     Padding.Right = 2
     ParentFont = False
     TabOrder = 0
+    ExplicitHeight = 426
     object Bevel1: TBevel
       AlignWithMargins = True
       Left = 7
@@ -115,8 +116,6 @@ object Form1: TForm1
         Margins.Right = 6
         Align = alTop
         Caption = 'Label1'
-        ExplicitLeft = 96
-        ExplicitTop = 64
         ExplicitWidth = 31
       end
       object Label2: TLabel
@@ -128,8 +127,6 @@ object Form1: TForm1
         Align = alTop
         Alignment = taCenter
         Caption = 'Label2'
-        ExplicitLeft = 96
-        ExplicitTop = 64
         ExplicitWidth = 31
       end
       object ProgressBar1: TProgressBar
