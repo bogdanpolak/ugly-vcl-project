@@ -23,6 +23,7 @@ type
     imported: TDateTime;
     description: string;
     constructor Create;
+    constructor CreateAndClone(ABook: TBook);
     constructor CreateAndLoad(Books: IBooksDAO);
     procedure LoadFrom(Books: IBooksDAO);
   end;
@@ -119,7 +120,8 @@ begin
     FBooksOnShelf.Add(b)
   else if b.status = 'avaliable' then
     FBooksAvaliable.Add(b);
-  FListBoxAvaliable.AddItem(b.title,b);
+  if FListBoxAvaliable<>nil then
+    FListBoxAvaliable.AddItem(b.title,b);
 end;
 
 function TBooksListBoxConfigurator.FindBook (isbn: string): TBook;
@@ -294,6 +296,20 @@ end;
 constructor TBook.Create;
 begin
   self.status := 'avaliable';
+end;
+
+constructor TBook.CreateAndClone(ABook: TBook);
+begin
+  Self.status := ABook.status;
+  Self.title := ABook.title;
+  Self.isbn := ABook.isbn;
+  Self.author := ABook.author;
+  Self.releseDate := ABook.releseDate;
+  Self.pages := ABook.pages;
+  Self.price := ABook.price;
+  Self.currency := ABook.currency;
+  Self.imported := ABook.imported;
+  Self.description := ABook.description;
 end;
 
 constructor TBook.CreateAndLoad(Books: IBooksDAO);

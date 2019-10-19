@@ -4,7 +4,14 @@ interface
 
 uses
   System.Classes, System.SysUtils, System.JSON, System.Contnrs,
+  System.Generics.Collections,
   IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient, IdHTTP;
+
+type
+  TReviewCatalogItem = record
+    BookReviewID: string;
+    function Create(const ABookReviewID: string): TReviewCatalogItem;
+  end;
 
 type
   TCloudBookReviews = class(TComponent)
@@ -12,48 +19,40 @@ type
     BaseURL = 'http://localhost:4040';
   private
     IdHTTP1: TIdHTTP;
-    BooksReviewCatalog: TObjectList;
-    procedure GetReviewCatalog(const Url: string);
     function GetStringHttp(const Url: string): string;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    function ConstructAndGetReviews(const LastUpdate: string): TJSONArray;
-    function GetReviewsAsString(const LastUpdate: string): string;
+    function GetCatalog(const LastSyncDay: TDateTime)
+      : TArray<TReviewCatalogItem>;
+    function GetReview(const BookReviewID: string): string;
   end;
 
 implementation
 
 (* ----------------------------------------------------------------
- * class TReviewCatalogItem
- * ---------------------------------------------------------------- *)
+  * class TReviewCatalogItem
+  * ---------------------------------------------------------------- *)
 
-type
-  TReviewCatalogItem = class
-    BookReviewID: string;
-    constructor CreateAndFill (const ABookReviewID: string);
-  end;
-
-constructor TReviewCatalogItem.CreateAndFill(const ABookReviewID: string);
+function TReviewCatalogItem.Create(const ABookReviewID: string)
+  : TReviewCatalogItem;
 begin
-  BookReviewID := ABookReviewID;
+  Result.BookReviewID := ABookReviewID;
 end;
 
 (* ----------------------------------------------------------------
- * class TCloudBookReviews
- * ---------------------------------------------------------------- *)
+  * class TCloudBookReviews
+  * ---------------------------------------------------------------- *)
 
 constructor TCloudBookReviews.Create(AOwner: TComponent);
 begin
   inherited;
   IdHTTP1 := TIdHTTP.Create(Self);
-  BooksReviewCatalog := TObjectList.Create;
 end;
 
 destructor TCloudBookReviews.Destroy;
 begin
   IdHTTP1.Free;
-  BooksReviewCatalog.Free;
   inherited;
 end;
 
@@ -62,53 +61,35 @@ begin
   Result := IdHTTP1.Get(BaseURL + Url);
 end;
 
-procedure TCloudBookReviews.GetReviewCatalog(const Url: string);
+function TCloudBookReviews.GetCatalog(const LastSyncDay: TDateTime)
+  : TArray<TReviewCatalogItem>;
 var
-  s: string;
-  jsBookReviewC: TJSONArray;
-  jv: TJSONValue;
+  Url: string;
+  sCatalog: string;
+  jsBookReviewCatalog: TJSONArray;
+  i: Integer;
+  str: string;
+  item: TReviewCatalogItem;
 begin
-  s := GetStringHttp(Url);
-  BooksReviewCatalog.Clear;
-  jsBookReviewC := TJSONObject.ParseJSONValue(s) as TJSONArray;
+  Url := '/books/review?startdate=' + FormatDateTime('yyyy-mm-dd', LastSyncDay);
+  sCatalog := GetStringHttp(Url);
+  jsBookReviewCatalog := TJSONObject.ParseJSONValue(sCatalog) as TJSONArray;
   try
-    for jv in jsBookReviewC do
-      BooksReviewCatalog.Add(TReviewCatalogItem.CreateAndFill(jv.Value));
+    Result := [];
+    for i := 0 to jsBookReviewCatalog.Count - 1 do
+    begin
+      str := jsBookReviewCatalog.Items[i].Value;
+      item.BookReviewID := str;
+      Result := Result + [item];
+    end;
   finally
-    jsBookReviewC.Free;
+    jsBookReviewCatalog.Free;
   end;
 end;
 
-function TCloudBookReviews.ConstructAndGetReviews(const LastUpdate: string)
-  : TJSONArray;
-var
-  jsLoadedReviews: TJSONArray;
-  i: integer;
-  BookReview: TReviewCatalogItem;
-  s: string;
-  jsBookReview: TJSONObject;
+function TCloudBookReviews.GetReview(const BookReviewID: string): string;
 begin
-  GetReviewCatalog('/books/review?startdate=' + LastUpdate);
-  jsLoadedReviews := TJSONArray.Create;
-  for i:=0 to BooksReviewCatalog.Count-1 do
-  begin
-    BookReview := BooksReviewCatalog.Items[i] as TReviewCatalogItem;
-    s := GetStringHttp('/books/review/'+BookReview.BookReviewID);
-    jsBookReview := TJSONObject.ParseJSONValue(s) as TJSONObject;
-    jsLoadedReviews.Add(jsBookReview);
-  end;
-  Result := jsLoadedReviews;
+  Result := GetStringHttp('/books/review/' + BookReviewID);
 end;
 
-function TCloudBookReviews.GetReviewsAsString(const LastUpdate: string): string;
-var
-  jReviews: TJSONArray;
-begin
-  jReviews := ConstructAndGetReviews(LastUpdate);
-  try
-    Result := jReviews.ToString
-  finally
-    jReviews.Free;
-  end;
-end;
 end.
