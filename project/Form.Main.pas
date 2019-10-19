@@ -2,6 +2,8 @@
 
 interface
 
+{ $DEFINE UseChromeTabs }
+
 uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes, System.StrUtils,
@@ -11,13 +13,12 @@ uses
   System.RegularExpressions,
   Data.DB,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
-  Vcl.ExtCtrls, Vcl.Grids, Vcl.DBGrids,
+  Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids,
+{$IFDEF UseChromeTabs}
   ChromeTabs, ChromeTabsClasses, ChromeTabsTypes,
+{$ENDIF}
   Frame.Welcome,
-  {TODO 3: [D] Resolve dependency on ExtGUI.ListBox.Books. Too tightly coupled}
-  // Dependency is requred by attribute TBooksListBoxConfigurator
-  ExtGUI.ListBox.Books,
-  Cloud.Books.Reviews, Vcl.ComCtrls;
+  Cloud.Books.Reviews;
 
 type
   TFrameClass = class of TFrame;
@@ -40,10 +41,6 @@ type
     procedure FormCreate(Sender: TObject);
     procedure tmrAppReadyTimer(Sender: TObject);
     procedure tmrIdleTimer(Sender: TObject);
-    procedure ChromeTabs1ButtonCloseTabClick(Sender: TObject; ATab: TChromeTab;
-      var Close: Boolean);
-    procedure ChromeTabs1Change(Sender: TObject; ATab: TChromeTab;
-      TabChangeType: TTabChangeType);
     procedure Splitter1Moved(Sender: TObject);
     procedure btnBooksfelfsClick(Sender: TObject);
     procedure btnImportClick(Sender: TObject);
@@ -54,18 +51,24 @@ type
     FirstMonthToFetchBooksData = 8; { 8, 9, 10-empty data }
   public
     pnMain: TPanel;
-    ChromeTabs1: TChromeTabs;
   private
     LastSynchonizationDay: TDateTime;
     CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
     FrameCounter: Integer;
+{$IFDEF UseChromeTabs}
+    ChromeTabs1: TChromeTabs;
+    procedure ChromeTabs1ButtonCloseTabClick(Sender: TObject; ATab: TChromeTab;
+      var Close: Boolean);
+    procedure ChromeTabs1Change(Sender: TObject; ATab: TChromeTab;
+      TabChangeType: TTabChangeType);
+{$ELSE}
+    MainPageControl: TPageControl;
+{$ENDIF}
     procedure OnFormReady;
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
     procedure BuildTabbedInterface;
-    function FindFrameInTabs(FreameClass: TFrameClass;
-      const Caption: string): TFrame;
-    function FindTabsWithData(AData: Pointer): TChromeTab;
+    function FindFrameInTabs(const TabCaption: string): TFrame;
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
     procedure ShitchToTab(frm: TFrame);
@@ -84,6 +87,7 @@ uses
   Utils.General,
   Data.Main,
   Data.UpgradeDatabase,
+  ExtGUI.ListBox.Books,
   Frame.Bookshelfs,
   Frame.Base;
 
@@ -95,7 +99,7 @@ resourcestring
   StrNotSupportedDBVersion = 'Not supported database version. Please' +
     ' update database structures.';
 
-function DBVersionToString(VerDB: integer): string;
+function DBVersionToString(VerDB: Integer): string;
 begin
   Result := (VerDB div 1000).ToString + '.' + (VerDB mod 1000).ToString;
 end;
@@ -149,7 +153,7 @@ end;
 procedure TForm1.OnFormReady();
 var
   frm: TFrameWelcome;
-  VersionNr: integer;
+  VersionNr: Integer;
 begin
   FrameCounter := 0;
   LastSynchonizationDay := EncodeDate(2019, FirstMonthToFetchBooksData, 1);
@@ -216,21 +220,25 @@ end;
 
 procedure TForm1.ShitchToTab(frm: TFrame);
 var
-  tab: TChromeTab;
+  i: Integer;
 begin
-  tab := FindTabsWithData(frm);
-  tab.Active := True;
+{$IFDEF UseChromeTabs}
+  // Activate ChoromeTab with frame "frm"
+  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
+    if ChromeTabs1.Tabs[i].Data = frm then
+      ChromeTabs1.Tabs[i].Active := True;
   HideAllChildFrames(pnMain);
   frm.Visible := True;
+{$ENDIF}
 end;
 
 { TODO 2: [Helper] Extract into TDBGrid.ForEachRow class helper }
-function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: integer = 25): integer;
+function AutoSizeColumns(DBGrid: TDBGrid; const MaxRows: Integer = 25): Integer;
 var
   DataSet: TDataSet;
   Bookmark: TBookmark;
-  Count, i: integer;
-  ColumnsWidth: array of integer;
+  Count, i: Integer;
+  ColumnsWidth: array of Integer;
 begin
   SetLength(ColumnsWidth, DBGrid.Columns.Count);
   for i := 0 to DBGrid.Columns.Count - 1 do
@@ -314,9 +322,9 @@ const
 var
   m: string;
   y: string;
-  i: integer;
-  mm: integer;
-  yy: integer;
+  i: Integer;
+  mm: Integer;
+  yy: Integer;
 begin
   m := s.Substring(0, 3);
   y := s.Substring(4);
@@ -330,39 +338,7 @@ begin
   Result := EncodeDate(yy, mm, 1);
 end;
 
-function TForm1.FindFrameInTabs(FreameClass: TFrameClass;
-  const Caption: string): TFrame;
-var
-  i: integer;
-  ATab: TChromeTab;
-  AObj: TObject;
-begin
-  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
-  begin
-    ATab := ChromeTabs1.Tabs[i];
-    AObj := TObject(ATab.Data);
-    if (ATab.Caption = Caption) and (AObj <> nil) and
-      (AObj.ClassType = FreameClass) then
-    begin
-      Result := AObj as TFrame;
-      exit;
-    end;
-  end;
-  Result := nil;
-end;
-
-function TForm1.FindTabsWithData(AData: Pointer): TChromeTab;
-var
-  i: integer;
-begin
-  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
-    if ChromeTabs1.Tabs[i].Data = AData then
-    begin
-      Result := ChromeTabs1.Tabs[i];
-      exit;
-    end;
-  Result := nil;
-end;
+{$IFDEF UseChromeTabs}
 
 function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
   const Caption: string): TFrame;
@@ -375,13 +351,75 @@ begin
     Parent := pnMain;
     Visible := True;
     Align := Vcl.Controls.alClient;
-    inc(FrameCounter);
+    Inc(FrameCounter);
     Name := Name + FrameCounter.ToString;
   end;
   tab := ChromeTabs1.Tabs.Add;
   tab.Caption := Caption;
   tab.Data := Result;
 end;
+
+function TForm1.FindFrameInTabs(const TabCaption: string): TFrame;
+var
+  i: Integer;
+  AObj: TObject;
+  ATab: TChromeTab;
+begin
+  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
+  begin
+    ATab := ChromeTabs1.Tabs[i];
+    AObj := TObject(ATab.Data);
+    if (ATab.Caption = TabCaption) and (AObj <> nil) then
+    begin
+      Result := AObj as TFrame;
+      exit;
+    end;
+  end;
+  Result := nil;
+end;
+
+{$ELSE}
+
+function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
+  const Caption: string): TFrame;
+var
+  tabsh: TTabSheet;
+begin
+  tabsh := TTabSheet.Create(MainPageControl);
+  tabsh.PageControl := MainPageControl;
+  tabsh.Caption := Caption;
+  MainPageControl.ActivePage := tabsh;
+  Result := FreameClass.Create(tabsh);
+  with Result do
+  begin
+    Parent := tabsh;
+    Visible := True;
+    Align := Vcl.Controls.alClient;
+    Inc(FrameCounter);
+    Name := Name + FrameCounter.ToString;
+  end;
+end;
+
+function TForm1.FindFrameInTabs(const TabCaption: string): TFrame;
+var
+  i: Integer;
+  tsh: TTabSheet;
+begin
+  Result := nil;
+  for i := 0 to MainPageControl.PageCount - 1 do
+  begin
+    tsh := MainPageControl.Pages[i];
+    if tsh.Caption = TabCaption then
+    begin
+      MainPageControl.ActivePage := tsh;
+      if (tsh.ControlCount > 0) and (tsh.Controls[0] is TFrame) then
+        Result := tsh.Controls[0] as TFrame;
+      exit;
+    end;
+  end;
+end;
+
+{$ENDIF}
 
 procedure TForm1.BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
 var
@@ -405,7 +443,7 @@ type
     LastName: string;
     Contact: string;
     Registered: TDateTime;
-    Rating: integer;
+    Rating: Integer;
     Oppinion: string;
   end;
 
@@ -420,9 +458,9 @@ begin
       jsReviewer.ToString);
 end;
 
-function RatingsToString(const ARattings: array of integer): string;
+function RatingsToString(const ARattings: array of Integer): string;
 var
-  i: integer;
+  i: Integer;
 begin
   Result := '[';
   for i := 0 to Length(ARattings) - 1 do
@@ -438,16 +476,16 @@ end;
 procedure TForm1.btnImportClick(Sender: TObject);
 var
   BookReviewsCatalog: TArray<TReviewCatalogItem>;
-  BooksCounter: integer;
+  BooksCounter: Integer;
   b: TBook;
   StrBookReview: string;
   jsBookReview: TJSONObject;
   jsReviewers: TJSONArray;
-  i: integer;
-  j: integer;
+  i: Integer;
+  j: Integer;
   jsReviewer: TJSONObject;
   Review: TReview;
-  AllRatings: array of integer;
+  AllRatings: array of Integer;
   RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
 begin
@@ -465,8 +503,7 @@ begin
     Step := 1;
   end;
   Application.ProcessMessages;
-  FrameBookshelfs := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs')
-    as TBookshelfsFrame;
+  FrameBookshelfs := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
@@ -497,7 +534,7 @@ begin
       // potnecial memory leaks - if exceptiom will be raised
       b.releseDate := BooksToDateTime(jsBookReview.Values['date'].Value);
       // potnecial memory leaks - if exceptiom will be raised
-      b.pages := (jsBookReview.Values['pages'] as TJSONNumber).AsInt;
+      b.Pages := (jsBookReview.Values['pages'] as TJSONNumber).AsInt;
       // potnecial memory leaks - if exceptiom will be raised
       b.price := StrToCurr(jsBookReview.Values['price'].Value);
       b.currency := jsBookReview.Values['currency'].Value;
@@ -515,7 +552,7 @@ begin
         // Fields: ISBN, Title, Authors, Status, ReleseDate, Pages, Price,
         // Currency, Imported, Description
         DataModMain.fdqBooks.InsertRecord([b.isbn, b.title, b.author, b.status,
-          b.releseDate, b.pages, b.price, b.currency, b.imported,
+          b.releseDate, b.Pages, b.price, b.currency, b.imported,
           b.description]);
       end;
       jsReviewers := jsBookReview.Values['reviews'] as TJSONArray;
@@ -599,11 +636,11 @@ procedure TForm1.btnBooksfelfsClick(Sender: TObject);
 var
   frm: TBookshelfsFrame;
 begin
-  frm := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs') as TBookshelfsFrame;
+  frm := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;
   if frm <> nil then
     ShitchToTab(frm)
   else
-    ConstructNewVisualTab(TBookshelfsFrame, 'Bookshelfs');
+    ConstructNewVisualTab(TBookshelfsFrame, 'My Bookshelf');
 end;
 
 procedure TForm1.btnBooksCatalogClick(Sender: TObject);
@@ -611,7 +648,7 @@ var
   frm: TBaseFrame;
   DBGrid1: TDBGrid;
 begin
-  frm := FindFrameInTabs(TBaseFrame, 'Books catalog') as TBaseFrame;
+  frm := FindFrameInTabs('Books catalog') as TBaseFrame;
   if frm = nil then
   begin
     frm := ConstructNewVisualTab(TBaseFrame, 'Books catalog') as TBaseFrame;
@@ -633,7 +670,7 @@ var
   DBGrid1: TDBGrid;
   DBGrid2: TDBGrid;
 begin
-  frm := FindFrameInTabs(TBaseFrame, 'Reviews catalog') as TBaseFrame;
+  frm := FindFrameInTabs('Reviews catalog') as TBaseFrame;
   if frm = nil then
   begin
     frm := ConstructNewVisualTab(TBaseFrame, 'Reviews catalog') as TBaseFrame;
@@ -668,6 +705,8 @@ begin
     ShitchToTab(frm);
 end;
 
+{$IFDEF UseChromeTabs}
+
 procedure TForm1.ChromeTabs1ButtonCloseTabClick(Sender: TObject;
   ATab: TChromeTab; var Close: Boolean);
 var
@@ -692,6 +731,8 @@ begin
     end;
   end;
 end;
+{$ENDIF}
+{$IFDEF UseChromeTabs}
 
 procedure TForm1.BuildTabbedInterface;
 begin
@@ -716,6 +757,20 @@ begin
     Align := alTop
   end;
 end;
+
+{$ELSE}
+
+procedure TForm1.BuildTabbedInterface;
+begin
+  MainPageControl := TPageControl.Create(Self);
+  with MainPageControl do
+  begin
+    Parent := Self;
+    Align := alClient;
+    AlignWithMargins := True;
+  end;
+end;
+{$ENDIF}
 
 procedure TForm1.Splitter1Moved(Sender: TObject);
 begin

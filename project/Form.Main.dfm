@@ -15,7 +15,7 @@ object Form1: TForm1
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter2: TSplitter
-    Left = 238
+    Left = 209
     Top = 0
     Width = 5
     Height = 507
@@ -26,7 +26,7 @@ object Form1: TForm1
     AlignWithMargins = True
     Left = 3
     Top = 2
-    Width = 235
+    Width = 206
     Height = 502
     Margins.Top = 2
     Margins.Right = 0
@@ -41,75 +41,80 @@ object Form1: TForm1
     Padding.Right = 2
     ParentFont = False
     TabOrder = 0
-    ExplicitHeight = 426
     object Bevel1: TBevel
       AlignWithMargins = True
       Left = 7
       Top = 153
-      Width = 221
-      Height = 26
+      Width = 192
+      Height = 16
       Align = alTop
       Shape = bsSpacer
-      ExplicitTop = 111
     end
     object btnImport: TButton
       AlignWithMargins = True
       Left = 7
-      Top = 185
-      Width = 221
+      Top = 175
+      Width = 192
       Height = 39
       Align = alTop
-      Caption = 'btnImport'
+      Caption = 'Import Data'
       TabOrder = 0
       OnClick = btnImportClick
+      ExplicitTop = 185
+      ExplicitWidth = 221
     end
     object btnBooksfelfs: TButton
       AlignWithMargins = True
       Left = 7
       Top = 18
-      Width = 221
+      Width = 192
       Height = 39
       Align = alTop
-      Caption = 'btnBooksfelfs'
+      Caption = 'My bookshelf'
       TabOrder = 1
       OnClick = btnBooksfelfsClick
+      ExplicitWidth = 221
     end
     object btnBooksCatalog: TButton
       AlignWithMargins = True
       Left = 7
       Top = 63
-      Width = 221
+      Width = 192
       Height = 39
       Align = alTop
-      Caption = 'btnBooksCatalog'
+      Caption = 'Books Catalog'
       TabOrder = 2
       OnClick = btnBooksCatalogClick
+      ExplicitLeft = 8
     end
     object btnReviewsCatalog: TButton
       AlignWithMargins = True
       Left = 7
       Top = 108
-      Width = 221
+      Width = 192
       Height = 39
       Align = alTop
-      Caption = 'btnReviewsCatalog'
+      Caption = 'Reviews'
       TabOrder = 3
       OnClick = btnReviewsCatalogClick
+      ExplicitWidth = 221
     end
     object grbxImportProgress: TGroupBox
       AlignWithMargins = True
       Left = 7
-      Top = 230
-      Width = 221
+      Top = 220
+      Width = 192
       Height = 107
       Align = alTop
       Caption = 'Import Progress:'
       TabOrder = 4
+      ExplicitTop = 230
+      ExplicitWidth = 221
       object Label1: TLabel
         AlignWithMargins = True
         Left = 8
         Top = 20
-        Width = 205
+        Width = 176
         Height = 13
         Margins.Left = 6
         Margins.Top = 5
@@ -122,7 +127,7 @@ object Form1: TForm1
         AlignWithMargins = True
         Left = 5
         Top = 71
-        Width = 211
+        Width = 182
         Height = 13
         Align = alTop
         Alignment = taCenter
@@ -133,10 +138,11 @@ object Form1: TForm1
         AlignWithMargins = True
         Left = 5
         Top = 39
-        Width = 211
+        Width = 182
         Height = 26
         Align = alTop
         TabOrder = 0
+        ExplicitWidth = 211
       end
     end
   end
