@@ -27,6 +27,7 @@ type
     GroupBox1: TGroupBox;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
+    SpeedButton4: TSpeedButton;
     SpeedButton3: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
@@ -117,7 +118,12 @@ end;
 
 procedure TForm1.SpeedButtonDelayClick(Sender: TObject);
 begin
-  TWebModule1.RequestDelayMs := (Sender as TSpeedButton).Tag;
+  if (Sender as TSpeedButton).Tag >= 1000 then
+  begin
+    TWebModule1.RequestDelayMs := 800 + random(1000);
+  end
+  else
+    TWebModule1.RequestDelayMs := (Sender as TSpeedButton).Tag;
 end;
 
 procedure TForm1.StartServer;
@@ -133,6 +139,7 @@ end;
 procedure TForm1.tmrAppStartupTimer(Sender: TObject);
 begin
   tmrAppStartup.Enabled := False;
+  Randomize;
   OnFormReady;
 end;
 
