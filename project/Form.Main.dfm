@@ -12,7 +12,6 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
-  OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter2: TSplitter
@@ -42,72 +41,106 @@ object Form1: TForm1
     Padding.Right = 2
     ParentFont = False
     TabOrder = 0
-    object lbBooksReaded: TLabel
+    object Bevel1: TBevel
       AlignWithMargins = True
       Left = 7
-      Top = 52
+      Top = 153
       Width = 221
-      Height = 13
-      Margins.Top = 6
-      Margins.Bottom = 0
+      Height = 26
       Align = alTop
-      Caption = 'Readed Books:'
-      ExplicitWidth = 72
-    end
-    object Splitter1: TSplitter
-      Left = 4
-      Top = 211
-      Width = 227
-      Height = 7
-      Cursor = crVSplit
-      Align = alTop
-      OnMoved = Splitter1Moved
-      ExplicitTop = 125
-      ExplicitWidth = 190
-    end
-    object lbBooksAvaliable: TLabel
-      AlignWithMargins = True
-      Left = 7
-      Top = 218
-      Width = 221
-      Height = 13
-      Margins.Top = 0
-      Margins.Bottom = 0
-      Align = alTop
-      Caption = 'Avaliable Books:'
-      ExplicitWidth = 78
-    end
-    object lbxBooksReaded: TListBox
-      AlignWithMargins = True
-      Left = 7
-      Top = 68
-      Width = 221
-      Height = 143
-      Margins.Bottom = 0
-      Align = alTop
-      ItemHeight = 13
-      TabOrder = 0
-    end
-    object lbxBooksAvaliable2: TListBox
-      AlignWithMargins = True
-      Left = 7
-      Top = 234
-      Width = 221
-      Height = 187
-      Align = alClient
-      ItemHeight = 13
-      TabOrder = 1
+      Shape = bsSpacer
+      ExplicitTop = 111
     end
     object btnImport: TButton
       AlignWithMargins = True
       Left = 7
-      Top = 18
+      Top = 185
       Width = 221
-      Height = 25
+      Height = 39
       Align = alTop
       Caption = 'btnImport'
-      TabOrder = 2
+      TabOrder = 0
       OnClick = btnImportClick
+    end
+    object btnBooksfelfs: TButton
+      AlignWithMargins = True
+      Left = 7
+      Top = 18
+      Width = 221
+      Height = 39
+      Align = alTop
+      Caption = 'btnBooksfelfs'
+      TabOrder = 1
+      OnClick = btnBooksfelfsClick
+    end
+    object btnBooksCatalog: TButton
+      AlignWithMargins = True
+      Left = 7
+      Top = 63
+      Width = 221
+      Height = 39
+      Align = alTop
+      Caption = 'btnBooksCatalog'
+      TabOrder = 2
+      OnClick = btnBooksCatalogClick
+    end
+    object btnReviewsCatalog: TButton
+      AlignWithMargins = True
+      Left = 7
+      Top = 108
+      Width = 221
+      Height = 39
+      Align = alTop
+      Caption = 'btnReviewsCatalog'
+      TabOrder = 3
+      OnClick = btnReviewsCatalogClick
+    end
+    object grbxImportProgress: TGroupBox
+      AlignWithMargins = True
+      Left = 7
+      Top = 230
+      Width = 221
+      Height = 107
+      Align = alTop
+      Caption = 'Import Progress:'
+      TabOrder = 4
+      object Label1: TLabel
+        AlignWithMargins = True
+        Left = 8
+        Top = 20
+        Width = 205
+        Height = 13
+        Margins.Left = 6
+        Margins.Top = 5
+        Margins.Right = 6
+        Align = alTop
+        Caption = 'Label1'
+        ExplicitLeft = 96
+        ExplicitTop = 64
+        ExplicitWidth = 31
+      end
+      object Label2: TLabel
+        AlignWithMargins = True
+        Left = 5
+        Top = 71
+        Width = 211
+        Height = 13
+        Align = alTop
+        Alignment = taCenter
+        Caption = 'Label2'
+        ExplicitLeft = 96
+        ExplicitTop = 64
+        ExplicitWidth = 31
+      end
+      object ProgressBar1: TProgressBar
+        AlignWithMargins = True
+        Left = 5
+        Top = 39
+        Width = 211
+        Height = 26
+        Align = alTop
+        TabOrder = 0
+      end
     end
   end
   object tmrAppReady: TTimer
@@ -115,5 +148,12 @@ object Form1: TForm1
     OnTimer = tmrAppReadyTimer
     Left = 320
     Top = 224
+  end
+  object tmrIdle: TTimer
+    Enabled = False
+    Interval = 50
+    OnTimer = tmrIdleTimer
+    Left = 320
+    Top = 280
   end
 end

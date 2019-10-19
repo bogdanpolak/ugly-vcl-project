@@ -6,7 +6,6 @@ uses
   Frame.Welcome in 'Frame.Welcome.pas' {FrameWelcome: TFrame},
   Consts.Application in 'Consts.Application.pas',
   Utils.CipherAES128 in 'Utils.CipherAES128.pas',
-  Frame.Import in 'Frame.Import.pas' {FrameImport: TFrame},
   Utils.General in 'Utils.General.pas',
   Data.Main in 'Data.Main.pas' {DataModMain: TDataModule},
   Utils.Messages in 'Utils.Messages.pas',
@@ -18,7 +17,9 @@ uses
   ExtGUI.ListBox.Books in 'ExtGUI.ListBox.Books.pas',
   Consts.SQL in 'Consts.SQL.pas',
   Data.UpgradeDatabase in 'Data.UpgradeDatabase.pas' {UpgradeDataModule: TDataModule},
-  Cloud.Books.Reviews in 'Cloud.Books.Reviews.pas';
+  Cloud.Books.Reviews in 'Cloud.Books.Reviews.pas',
+  Frame.Bookshelfs in 'Frame.Bookshelfs.pas' {BookshelfsFrame: TFrame},
+  Frame.Base in 'Frame.Base.pas' {BaseFrame: TFrame};
 
 {$R *.res}
 

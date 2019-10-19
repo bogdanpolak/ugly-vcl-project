@@ -17,48 +17,57 @@ uses
   {TODO 3: [D] Resolve dependency on ExtGUI.ListBox.Books. Too tightly coupled}
   // Dependency is requred by attribute TBooksListBoxConfigurator
   ExtGUI.ListBox.Books,
-  Cloud.Books.Reviews;
+  Cloud.Books.Reviews, Vcl.ComCtrls;
 
 type
   TFrameClass = class of TFrame;
 
   TForm1 = class(TForm)
-  const
-    FirstMonthToFetchBooksData = 8; { 8, 9, 10-empty data }
   published
+    btnBooksfelfs: TButton;
+    btnBooksCatalog: TButton;
+    btnReviewsCatalog: TButton;
+    Bevel1: TBevel;
     GroupBox1: TGroupBox;
-    lbBooksReaded: TLabel;
-    Splitter1: TSplitter;
-    lbBooksAvaliable: TLabel;
-    lbxBooksReaded: TListBox;
-    lbxBooksAvaliable2: TListBox;
     btnImport: TButton;
     tmrAppReady: TTimer;
     Splitter2: TSplitter;
+    grbxImportProgress: TGroupBox;
+    Label1: TLabel;
+    ProgressBar1: TProgressBar;
+    Label2: TLabel;
+    tmrIdle: TTimer;
     procedure FormCreate(Sender: TObject);
-    procedure btnImportClick(Sender: TObject);
+    procedure tmrAppReadyTimer(Sender: TObject);
+    procedure tmrIdleTimer(Sender: TObject);
     procedure ChromeTabs1ButtonCloseTabClick(Sender: TObject; ATab: TChromeTab;
       var Close: Boolean);
     procedure ChromeTabs1Change(Sender: TObject; ATab: TChromeTab;
       TabChangeType: TTabChangeType);
-    procedure FormResize(Sender: TObject);
     procedure Splitter1Moved(Sender: TObject);
-    procedure tmrAppReadyTimer(Sender: TObject);
+    procedure btnBooksfelfsClick(Sender: TObject);
+    procedure btnImportClick(Sender: TObject);
+    procedure btnBooksCatalogClick(Sender: TObject);
+    procedure btnReviewsCatalogClick(Sender: TObject);
+
+  const
+    FirstMonthToFetchBooksData = 8; { 8, 9, 10-empty data }
   public
     pnMain: TPanel;
     ChromeTabs1: TChromeTabs;
   private
-    FetchBooksDataCounter: integer;
-    FBooksConfig: TBooksListBoxConfigurator;
+    LastSynchonizationDay: TDateTime;
     CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
-    procedure AutoSizeBooksGroupBoxes();
+    procedure OnFormReady;
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
     procedure BuildTabbedInterface;
-    function FindTab(FreameClass: TFrameClass; const Caption: string): TFrame;
+    function FindFrameInTabs(FreameClass: TFrameClass;
+      const Caption: string): TFrame;
+    function FindTabsWithData(AData: Pointer): TChromeTab;
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
-    procedure OnFormReady;
+    procedure ShitchToTab(frm: TFrame);
   end;
 
 var
@@ -72,9 +81,10 @@ uses
   FireDAC.Stan.Error,
   Consts.Application,
   Utils.General,
-  Frame.Import,
   Data.Main,
-  Data.UpgradeDatabase;
+  Data.UpgradeDatabase,
+  Frame.Bookshelfs,
+  Frame.Base;
 
 const
   Client_API_Token = '20be805d-9cea27e2-a588efc5-1fceb84d-9fb4b67c';
@@ -123,6 +133,16 @@ procedure TForm1.tmrAppReadyTimer(Sender: TObject);
 begin
   tmrAppReady.Enabled := False;
   OnFormReady;
+  tmrIdle.Enabled := True;
+end;
+
+procedure TForm1.tmrIdleTimer(Sender: TObject);
+begin
+  if grbxImportProgress.Tag > 0 then
+  begin
+    grbxImportProgress.Tag := grbxImportProgress.Tag - 1;
+    grbxImportProgress.Visible := (grbxImportProgress.Tag > 0);
+  end;
 end;
 
 procedure TForm1.OnFormReady();
@@ -130,7 +150,9 @@ var
   frm: TFrameWelcome;
   VersionNr: integer;
 begin
-  FetchBooksDataCounter := FirstMonthToFetchBooksData;
+  LastSynchonizationDay := EncodeDate(2019, FirstMonthToFetchBooksData, 1);
+  // ----------------------------------------------------------
+  grbxImportProgress.Visible := False;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
@@ -184,57 +206,20 @@ begin
   //
   DataModMain.OpenDataSets;
   // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // TBooksListBoxConfigurator.PrepareListBoxes =
-  // 1. Initialize ListBox'es for books
-  // 2. (!!!!) Load books form database through experimental IBooksDAO
-  // 3. Setup drag&drop functionality for two list boxes
-  // 4. Setup OwnerDraw mode
-  //
-  FBooksConfig := TBooksListBoxConfigurator.Create(Self);
-  FBooksConfig.PrepareListBoxes(lbxBooksReaded, lbxBooksAvaliable2);
-  // ----------------------------------------------------------
   if FApplicationInDeveloperMode and InInternalQualityMode then
   begin
     BuildDBGridForBooks_InternalQA(frm);
   end;
 end;
 
-procedure TForm1.FormResize(Sender: TObject);
-begin
-  AutoSizeBooksGroupBoxes();
-end;
-
-{ TODO 2: [Helper] TWinControl class helper }
-function SumHeightForChildrens(Parent: TWinControl;
-  ControlsToExclude: TArray<TControl>): integer;
+procedure TForm1.ShitchToTab(frm: TFrame);
 var
-  i: integer;
-  ctrl: Vcl.Controls.TControl;
-  isExcluded: Boolean;
-  j: integer;
-  sumHeight: integer;
-  ctrlHeight: integer;
+  tab: TChromeTab;
 begin
-  sumHeight := 0;
-  for i := 0 to Parent.ControlCount - 1 do
-  begin
-    ctrl := Parent.Controls[i];
-    isExcluded := False;
-    for j := 0 to Length(ControlsToExclude) - 1 do
-      if ControlsToExclude[j] = ctrl then
-        isExcluded := True;
-    if not isExcluded then
-    begin
-      if ctrl.AlignWithMargins then
-        ctrlHeight := ctrl.Height + ctrl.Margins.Top + ctrl.Margins.Bottom
-      else
-        ctrlHeight := ctrl.Height;
-      sumHeight := sumHeight + ctrlHeight;
-    end;
-  end;
-  Result := sumHeight;
+  tab := FindTabsWithData(frm);
+  tab.Active := True;
+  HideAllChildFrames(pnMain);
+  frm.Visible := True;
 end;
 
 { TODO 2: [Helper] Extract into TDBGrid.ForEachRow class helper }
@@ -343,7 +328,7 @@ begin
   Result := EncodeDate(yy, mm, 1);
 end;
 
-function TForm1.FindTab(FreameClass: TFrameClass;
+function TForm1.FindFrameInTabs(FreameClass: TFrameClass;
   const Caption: string): TFrame;
 var
   i: integer;
@@ -361,6 +346,19 @@ begin
       exit;
     end;
   end;
+  Result := nil;
+end;
+
+function TForm1.FindTabsWithData(AData: Pointer): TChromeTab;
+var
+  i: integer;
+begin
+  for i := 0 to ChromeTabs1.Tabs.Count - 1 do
+    if ChromeTabs1.Tabs[i].Data = AData then
+    begin
+      Result := ChromeTabs1.Tabs[i];
+      exit;
+    end;
   Result := nil;
 end;
 
@@ -433,61 +431,113 @@ begin
   Result := Result + ']';
 end;
 
-{ TODO 2: [A] Method is too large. Comments is showing separate methods }
+procedure TForm1.btnBooksfelfsClick(Sender: TObject);
+var
+  frm: TBookshelfsFrame;
+begin
+  frm := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs') as TBookshelfsFrame;
+  if frm <> nil then
+    ShitchToTab(frm)
+  else
+    ConstructNewVisualTab(TBookshelfsFrame, 'Bookshelfs');
+end;
+
+procedure TForm1.btnBooksCatalogClick(Sender: TObject);
+var
+  frm: TBaseFrame;
+  DBGrid1: TDBGrid;
+begin
+  frm := FindFrameInTabs(TBaseFrame, 'Books catalog') as TBaseFrame;
+  if frm = nil then
+  begin
+    frm := ConstructNewVisualTab(TBaseFrame, 'Books catalog') as TBaseFrame;
+    DBGrid1 := TDBGrid.Create(frm);
+    DBGrid1.AlignWithMargins := True;
+    DBGrid1.Parent := frm;
+    DBGrid1.Align := Vcl.Controls.alClient;
+    DBGrid1.DataSource := TDataSource.Create(frm);
+    DBGrid1.DataSource.DataSet := DataModMain.fdqBooks;
+    AutoSizeColumns(DBGrid1);
+  end
+  else
+    ShitchToTab(frm);
+end;
+
 procedure TForm1.btnImportClick(Sender: TObject);
 var
+  BookReviewsCatalog: TArray<TReviewCatalogItem>;
+  BooksCounter: integer;
   b: TBook;
-  jsBookReviews: TJSONArray;
-  jsBook: TJSONObject;
+  StrBookReview: string;
+  jsBookReview: TJSONObject;
   jsReviewers: TJSONArray;
   i: integer;
   j: integer;
   jsReviewer: TJSONObject;
   Review: TReview;
-  isbn: string;
   AllRatings: array of integer;
   RatingsAsString: string;
-
-  frm: TFrameImport;
-  DBGrid1: TDBGrid;
-  DataSrc1: TDataSource;
-  DBGrid2: TDBGrid;
-  DataSrc2: TDataSource;
-  dtLoadDataSince: string;
+  FrameBookshelfs: TBookshelfsFrame;
 begin
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  //
+  // Visual raport TGroupBox
+  //
+  grbxImportProgress.Visible := True;
+  grbxImportProgress.Tag := 9999;
+  with ProgressBar1 do
+  begin
+    Position := 0;
+    Max := 99;
+    Step := 1;
+  end;
+  Application.ProcessMessages;
+  FrameBookshelfs := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs')
+    as TBookshelfsFrame;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  dtLoadDataSince := Format('2019-%.2d-01', [FetchBooksDataCounter]);
-  if FetchBooksDataCounter < 12 then
-    Inc(FetchBooksDataCounter);
-  jsBookReviews := CloudBookReviews.ConstructAndGetReviews(dtLoadDataSince);
-  try
-    // ----------------------------------------------------------
-    // ----------------------------------------------------------
-    //
-    // Import new Books from json data
-    //
-    { TODO 2: [A] Extract method. Read comments and use meaningful name }
-    for i := 0 to jsBookReviews.Count - 1 do
-    begin
-      jsBook := jsBookReviews.Items[i] as TJSONObject;
-      isbn := jsBook.Values['isbn'].Value;
-      if FBooksConfig.GetBookList(blkAll).FindByISBN(isbn) = nil then
+  BookReviewsCatalog := CloudBookReviews.GetCatalog(LastSynchonizationDay);
+  LastSynchonizationDay := IncMonth(LastSynchonizationDay, 1);
+  BooksCounter := Length(BookReviewsCatalog);
+  ProgressBar1.Max := BooksCounter;
+  for i := 0 to BooksCounter - 1 do
+  begin
+    StrBookReview := CloudBookReviews.GetReview
+      (BookReviewsCatalog[i].BookReviewID);
+    ProgressBar1.StepIt;
+    Application.ProcessMessages;
+    jsBookReview := TJSONObject.ParseJSONValue(StrBookReview) as TJSONObject;
+    b := TBook.Create;
+    try
+      // ----------------------------------------------------------
+      // ----------------------------------------------------------
+      //
+      // Import new Book Review from json data
+      //
+      { TODO 2: [A] Extract method. Read comments and use meaningful name }
+      b.title := jsBookReview.Values['title'].Value;
+      b.isbn := jsBookReview.Values['isbn'].Value;
+      b.author := jsBookReview.Values['author'].Value;
+      // potnecial memory leaks - if exceptiom will be raised
+      b.releseDate := BooksToDateTime(jsBookReview.Values['date'].Value);
+      // potnecial memory leaks - if exceptiom will be raised
+      b.pages := (jsBookReview.Values['pages'] as TJSONNumber).AsInt;
+      // potnecial memory leaks - if exceptiom will be raised
+      b.price := StrToCurr(jsBookReview.Values['price'].Value);
+      b.currency := jsBookReview.Values['currency'].Value;
+      b.description := jsBookReview.Values['description'].Value;
+      b.imported := Now();
+      if not DataModMain.fdqBooks.Locate('ISBN', b.isbn, []) then
       begin
-        b := TBook.Create;
-        b.title := jsBook.Values['title'].Value;
-        b.isbn := jsBook.Values['isbn'].Value;
-        b.author := jsBook.Values['author'].Value;
-        b.releseDate := BooksToDateTime(jsBook.Values['date'].Value);
-        b.pages := (jsBook.Values['pages'] as TJSONNumber).AsInt;
-        b.price := StrToCurr(jsBook.Values['price'].Value);
-        b.currency := jsBook.Values['currency'].Value;
-        b.description := jsBook.Values['description'].Value;
-        b.imported := Now();
-        FBooksConfig.InsertNewBook(b);
+        if FrameBookshelfs <> nil then
+        begin
+          FrameBookshelfs.ListBoxConfigurator.InsertNewBook
+            (TBook.CreateAndClone(b));
+        end;
         // ----------------------------------------------------------------
         // Append report into the database:
         // Fields: ISBN, Title, Authors, Status, ReleseDate, Pages, Price,
@@ -496,7 +546,7 @@ begin
           b.releseDate, b.pages, b.price, b.currency, b.imported,
           b.description]);
       end;
-      jsReviewers := jsBook.Values['reviews'] as TJSONArray;
+      jsReviewers := jsBookReview.Values['reviews'] as TJSONArray;
       // ----------------------------------------------------------
       // ----------------------------------------------------------
       //
@@ -555,60 +605,62 @@ begin
         // Append report into the database:
         // Fields: ReaderId, ISBN, Rating, Oppinion, Reported
         //
-        DataModMain.fdqReports.AppendRecord([Review.ReporterID, isbn,
+        DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
           Review.Rating, Review.Oppinion, Review.Registered]);
         // ----------------------------------------------------------------
         Insert([Review.Rating], AllRatings, maxInt);
       end;
+    finally
+      b.Free;
+      jsBookReview.Free;
     end;
-    RatingsAsString := RatingsToString(AllRatings);
-  finally
-    jsBookReviews.Free;
   end;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Create and show import frame
-  frm := FindTab(TFrameImport, 'Readers') as TFrameImport;
-  if frm = nil then
-    frm := ConstructNewVisualTab(TFrameImport, 'Readers') as TFrameImport;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Dynamically Add TDBGrid to TFrameImport
-  //
-  { TODO 2: [C] Move code down separate bussines logic from GUI }
-  // warning for dataset dependencies, discuss TDBGrid dependencies
-  DataSrc1 := TDataSource.Create(frm);
-  DBGrid1 := TDBGrid.Create(frm);
-  DBGrid1.AlignWithMargins := True;
-  DBGrid1.Parent := frm;
-  DBGrid1.Align := Vcl.Controls.alClient;
-  DBGrid1.DataSource := DataSrc1;
-  DataSrc1.DataSet := DataModMain.fdqReaders;
-  AutoSizeColumns(DBGrid1);
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  if FApplicationInDeveloperMode then
+  RatingsAsString := RatingsToString(AllRatings);
+  grbxImportProgress.Tag := 9999;
+end;
+
+procedure TForm1.btnReviewsCatalogClick(Sender: TObject);
+begin
+  (*
+    frm: TFrameImport;
+    DBGrid1: TDBGrid;
+    DBGrid2: TDBGrid;
+    // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    //
+    // Dynamically Add TDBGrid to TFrameImport
+    //
+    { TODO 2: [C] Move code down separate bussines logic from GUI }
+    // warning for dataset dependencies, discuss TDBGrid dependencies
+    DBGrid1 := TDBGrid.Create(frm);
+    DBGrid1.AlignWithMargins := True;
+    DBGrid1.Parent := frm;
+    DBGrid1.Align := Vcl.Controls.alClient;
+    DBGrid1.DataSource := TDataSource.Create(frm);
+    DBGrid1.DataSource.DataSet := DataModMain.fdqReaders;
+    AutoSizeColumns(DBGrid1);
+    // ----------------------------------------------------------
+    // ----------------------------------------------------------
+    if FApplicationInDeveloperMode then
     Caption := RatingsAsString;
-  // ----------------------------------------------------------------
-  with TSplitter.Create(frm) do
-  begin
+    // ----------------------------------------------------------------
+    with TSplitter.Create(frm) do
+    begin
     Align := alBottom;
     Parent := frm;
     Height := 5;
-  end;
-  DBGrid1.Margins.Bottom := 0;
-  DataSrc2 := TDataSource.Create(frm);
-  DBGrid2 := TDBGrid.Create(frm);
-  DBGrid2.AlignWithMargins := True;
-  DBGrid2.Parent := frm;
-  DBGrid2.Align := alBottom;
-  DBGrid2.Height := frm.Height div 3;
-  DBGrid2.DataSource := DataSrc2;
-  DataSrc2.DataSet := DataModMain.fdqReports;
-  DBGrid2.Margins.Top := 0;
-  AutoSizeColumns(DBGrid2);
+    end;
+    DBGrid1.Margins.Bottom := 0;
+    DBGrid2 := TDBGrid.Create(frm);
+    DBGrid2.AlignWithMargins := True;
+    DBGrid2.Parent := frm;
+    DBGrid2.Align := alBottom;
+    DBGrid2.Height := frm.Height div 3;
+    DBGrid2.DataSource := TDataSource.Create(frm);
+    DBGrid2.DataSource.DataSet := DataModMain.fdqReports;
+    DBGrid2.Margins.Top := 0;
+    AutoSizeColumns(DBGrid2);
+  *)
 end;
 
 procedure TForm1.ChromeTabs1ButtonCloseTabClick(Sender: TObject;
@@ -660,31 +712,6 @@ begin
   end;
 end;
 
-procedure TForm1.AutoSizeBooksGroupBoxes();
-var
-  sum: integer;
-  avaliable: integer;
-  labelPixelHeight: integer;
-begin
-  { TODO 3: Move into TBooksListBoxConfigurator }
-  with TBitmap.Create do
-  begin
-    Canvas.Font.Size := GroupBox1.Font.Height;
-    labelPixelHeight := Canvas.TextHeight('Zg');
-    Free;
-  end;
-  sum := SumHeightForChildrens(GroupBox1, [lbxBooksReaded, lbxBooksAvaliable2]);
-  avaliable := GroupBox1.Height - sum - labelPixelHeight;
-  if GroupBox1.AlignWithMargins then
-    avaliable := avaliable - GroupBox1.Padding.Top - GroupBox1.Padding.Bottom;
-  if lbxBooksReaded.AlignWithMargins then
-    avaliable := avaliable - lbxBooksReaded.Margins.Top -
-      lbxBooksReaded.Margins.Bottom;
-  if lbxBooksAvaliable2.AlignWithMargins then
-    avaliable := avaliable - lbxBooksAvaliable2.Margins.Top -
-      lbxBooksAvaliable2.Margins.Bottom;
-  lbxBooksReaded.Height := avaliable div 2;
-end;
 
 procedure TForm1.Splitter1Moved(Sender: TObject);
 begin
