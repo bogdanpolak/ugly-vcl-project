@@ -59,6 +59,7 @@ type
     LastSynchonizationDay: TDateTime;
     CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
+    FrameCounter: Integer;
     procedure OnFormReady;
     procedure BuildDBGridForBooks_InternalQA(frm: TFrameWelcome);
     procedure BuildTabbedInterface;
@@ -150,6 +151,7 @@ var
   frm: TFrameWelcome;
   VersionNr: integer;
 begin
+  FrameCounter := 0;
   LastSynchonizationDay := EncodeDate(2019, FirstMonthToFetchBooksData, 1);
   // ----------------------------------------------------------
   grbxImportProgress.Visible := False;
@@ -373,6 +375,8 @@ begin
     Parent := pnMain;
     Visible := True;
     Align := Vcl.Controls.alClient;
+    inc(FrameCounter);
+    Name := Name + FrameCounter.ToString;
   end;
   tab := ChromeTabs1.Tabs.Add;
   tab.Caption := Caption;
@@ -429,38 +433,6 @@ begin
       Result := Result + ', ' + ARattings[i].ToString;
   end;
   Result := Result + ']';
-end;
-
-procedure TForm1.btnBooksfelfsClick(Sender: TObject);
-var
-  frm: TBookshelfsFrame;
-begin
-  frm := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs') as TBookshelfsFrame;
-  if frm <> nil then
-    ShitchToTab(frm)
-  else
-    ConstructNewVisualTab(TBookshelfsFrame, 'Bookshelfs');
-end;
-
-procedure TForm1.btnBooksCatalogClick(Sender: TObject);
-var
-  frm: TBaseFrame;
-  DBGrid1: TDBGrid;
-begin
-  frm := FindFrameInTabs(TBaseFrame, 'Books catalog') as TBaseFrame;
-  if frm = nil then
-  begin
-    frm := ConstructNewVisualTab(TBaseFrame, 'Books catalog') as TBaseFrame;
-    DBGrid1 := TDBGrid.Create(frm);
-    DBGrid1.AlignWithMargins := True;
-    DBGrid1.Parent := frm;
-    DBGrid1.Align := Vcl.Controls.alClient;
-    DBGrid1.DataSource := TDataSource.Create(frm);
-    DBGrid1.DataSource.DataSet := DataModMain.fdqBooks;
-    AutoSizeColumns(DBGrid1);
-  end
-  else
-    ShitchToTab(frm);
 end;
 
 procedure TForm1.btnImportClick(Sender: TObject);
@@ -616,22 +588,56 @@ begin
     end;
   end;
   RatingsAsString := RatingsToString(AllRatings);
-  grbxImportProgress.Tag := 9999;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  if FApplicationInDeveloperMode then
+    Caption := RatingsAsString;
+  grbxImportProgress.Tag := 80;
+end;
+
+procedure TForm1.btnBooksfelfsClick(Sender: TObject);
+var
+  frm: TBookshelfsFrame;
+begin
+  frm := FindFrameInTabs(TBookshelfsFrame, 'Bookshelfs') as TBookshelfsFrame;
+  if frm <> nil then
+    ShitchToTab(frm)
+  else
+    ConstructNewVisualTab(TBookshelfsFrame, 'Bookshelfs');
+end;
+
+procedure TForm1.btnBooksCatalogClick(Sender: TObject);
+var
+  frm: TBaseFrame;
+  DBGrid1: TDBGrid;
+begin
+  frm := FindFrameInTabs(TBaseFrame, 'Books catalog') as TBaseFrame;
+  if frm = nil then
+  begin
+    frm := ConstructNewVisualTab(TBaseFrame, 'Books catalog') as TBaseFrame;
+    DBGrid1 := TDBGrid.Create(frm);
+    DBGrid1.AlignWithMargins := True;
+    DBGrid1.Parent := frm;
+    DBGrid1.Align := Vcl.Controls.alClient;
+    DBGrid1.DataSource := TDataSource.Create(frm);
+    DBGrid1.DataSource.DataSet := DataModMain.fdqBooks;
+    AutoSizeColumns(DBGrid1);
+  end
+  else
+    ShitchToTab(frm);
 end;
 
 procedure TForm1.btnReviewsCatalogClick(Sender: TObject);
+var
+  frm: TBaseFrame;
+  DBGrid1: TDBGrid;
+  DBGrid2: TDBGrid;
 begin
-  (*
-    frm: TFrameImport;
-    DBGrid1: TDBGrid;
-    DBGrid2: TDBGrid;
+  frm := FindFrameInTabs(TBaseFrame, 'Reviews catalog') as TBaseFrame;
+  if frm = nil then
+  begin
+    frm := ConstructNewVisualTab(TBaseFrame, 'Reviews catalog') as TBaseFrame;
     // ----------------------------------------------------------
-    // ----------------------------------------------------------
-    //
-    // Dynamically Add TDBGrid to TFrameImport
-    //
-    { TODO 2: [C] Move code down separate bussines logic from GUI }
-    // warning for dataset dependencies, discuss TDBGrid dependencies
     DBGrid1 := TDBGrid.Create(frm);
     DBGrid1.AlignWithMargins := True;
     DBGrid1.Parent := frm;
@@ -639,18 +645,15 @@ begin
     DBGrid1.DataSource := TDataSource.Create(frm);
     DBGrid1.DataSource.DataSet := DataModMain.fdqReaders;
     AutoSizeColumns(DBGrid1);
-    // ----------------------------------------------------------
-    // ----------------------------------------------------------
-    if FApplicationInDeveloperMode then
-    Caption := RatingsAsString;
+    DBGrid1.Margins.Bottom := 0;
     // ----------------------------------------------------------------
     with TSplitter.Create(frm) do
     begin
-    Align := alBottom;
-    Parent := frm;
-    Height := 5;
+      Align := alBottom;
+      Parent := frm;
+      Height := 5;
     end;
-    DBGrid1.Margins.Bottom := 0;
+    // ----------------------------------------------------------------
     DBGrid2 := TDBGrid.Create(frm);
     DBGrid2.AlignWithMargins := True;
     DBGrid2.Parent := frm;
@@ -660,7 +663,9 @@ begin
     DBGrid2.DataSource.DataSet := DataModMain.fdqReports;
     DBGrid2.Margins.Top := 0;
     AutoSizeColumns(DBGrid2);
-  *)
+  end
+  else
+    ShitchToTab(frm);
 end;
 
 procedure TForm1.ChromeTabs1ButtonCloseTabClick(Sender: TObject;
@@ -711,7 +716,6 @@ begin
     Align := alTop
   end;
 end;
-
 
 procedure TForm1.Splitter1Moved(Sender: TObject);
 begin
