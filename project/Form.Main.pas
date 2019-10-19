@@ -492,7 +492,7 @@ begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
-  // Visual raport TGroupBox
+  // Logger: messages in TGroupBox durring get books from REST server
   //
   grbxImportProgress.Visible := True;
   grbxImportProgress.Tag := 9999;
@@ -503,6 +503,8 @@ begin
     Step := 1;
   end;
   Application.ProcessMessages;
+  // ----------------------------------------------------------
+  // ----------------------------------------------------------
   FrameBookshelfs := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
