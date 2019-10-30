@@ -5,7 +5,23 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-  Vcl.Pattern.Command;
+  System.JSON,
+  Vcl.Pattern.Command,
+
+  Cloud.Books.Reviews,
+  ExtGUI.ListBox.Books,
+  Frame.Bookshelfs;
+
+type
+  TReview = record
+    ReporterID: string;
+    FirstName: string;
+    LastName: string;
+    Contact: string;
+    Registered: TDateTime;
+    Rating: Integer;
+    Oppinion: string;
+  end;
 
 type
   TBookImportCommand = class (TCommand)
@@ -26,7 +42,6 @@ begin
 end;
 
 procedure TBookImportCommand.Execute;
-(*
 var
   BookReviewsCatalog: TArray<TReviewCatalogItem>;
   BooksCounter: Integer;
@@ -41,7 +56,6 @@ var
   AllRatings: array of Integer;
   RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
-*)
 begin
 (*
   // ----------------------------------------------------------

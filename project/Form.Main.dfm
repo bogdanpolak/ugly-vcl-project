@@ -107,25 +107,23 @@ object Form1: TForm1
         AlignWithMargins = True
         Left = 8
         Top = 20
-        Width = 176
+        Width = 31
         Height = 13
         Margins.Left = 6
         Margins.Top = 5
         Margins.Right = 6
         Align = alTop
         Caption = 'Label1'
-        ExplicitWidth = 31
       end
       object Label2: TLabel
         AlignWithMargins = True
         Left = 5
         Top = 71
-        Width = 182
+        Width = 31
         Height = 13
         Align = alTop
         Alignment = taCenter
         Caption = 'Label2'
-        ExplicitWidth = 31
       end
       object ProgressBar1: TProgressBar
         AlignWithMargins = True

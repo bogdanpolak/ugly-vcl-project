@@ -439,17 +439,6 @@ begin
   AutoSizeColumns(DataGrid);
 end;
 
-type
-  TReview = record
-    ReporterID: string;
-    FirstName: string;
-    LastName: string;
-    Contact: string;
-    Registered: TDateTime;
-    Rating: Integer;
-    Oppinion: string;
-  end;
-
 procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
 var
   isValid: Boolean;
