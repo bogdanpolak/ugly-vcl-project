@@ -60,8 +60,6 @@ object Form1: TForm1
       Caption = 'Import Data'
       TabOrder = 0
       OnClick = btnImportClick
-      ExplicitTop = 185
-      ExplicitWidth = 221
     end
     object btnBooksfelfs: TButton
       AlignWithMargins = True
@@ -73,7 +71,6 @@ object Form1: TForm1
       Caption = 'My bookshelf'
       TabOrder = 1
       OnClick = btnBooksfelfsClick
-      ExplicitWidth = 221
     end
     object btnBooksCatalog: TButton
       AlignWithMargins = True
@@ -85,7 +82,6 @@ object Form1: TForm1
       Caption = 'Books Catalog'
       TabOrder = 2
       OnClick = btnBooksCatalogClick
-      ExplicitLeft = 8
     end
     object btnReviewsCatalog: TButton
       AlignWithMargins = True
@@ -97,7 +93,6 @@ object Form1: TForm1
       Caption = 'Reviews'
       TabOrder = 3
       OnClick = btnReviewsCatalogClick
-      ExplicitWidth = 221
     end
     object grbxImportProgress: TGroupBox
       AlignWithMargins = True
@@ -108,8 +103,6 @@ object Form1: TForm1
       Align = alTop
       Caption = 'Import Progress:'
       TabOrder = 4
-      ExplicitTop = 230
-      ExplicitWidth = 221
       object Label1: TLabel
         AlignWithMargins = True
         Left = 8
@@ -142,7 +135,6 @@ object Form1: TForm1
         Height = 26
         Align = alTop
         TabOrder = 0
-        ExplicitWidth = 211
       end
     end
   end

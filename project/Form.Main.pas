@@ -18,7 +18,7 @@ uses
   ChromeTabs, ChromeTabsClasses, ChromeTabsTypes,
 {$ENDIF}
   Frame.Welcome,
-  Cloud.Books.Reviews;
+  Cloud.Books.Reviews, Command.ImportBooks;
 
 type
   TFrameClass = class of TFrame;
@@ -72,6 +72,7 @@ type
     function ConstructNewVisualTab(FreameClass: TFrameClass;
       const Caption: string): TFrame;
     procedure ShitchToTab(frm: TFrame);
+    procedure ExecuteImportClick;
   end;
 
 var
@@ -219,8 +220,10 @@ begin
 end;
 
 procedure TForm1.ShitchToTab(frm: TFrame);
+{$IFDEF UseChromeTabs}
 var
   i: Integer;
+{$ENDIF}
 begin
 {$IFDEF UseChromeTabs}
   // Activate ChoromeTab with frame "frm"
@@ -474,6 +477,11 @@ begin
 end;
 
 procedure TForm1.btnImportClick(Sender: TObject);
+begin
+  ExecuteImportClick;
+end;
+
+procedure TForm1.ExecuteImportClick;
 var
   BookReviewsCatalog: TArray<TReviewCatalogItem>;
   BooksCounter: Integer;
