@@ -404,22 +404,8 @@ begin
 end;
 
 function TForm1.FindFrameInTabs(const TabCaption: string): TFrame;
-var
-  i: Integer;
-  tsh: TTabSheet;
 begin
-  Result := nil;
-  for i := 0 to MainPageControl.PageCount - 1 do
-  begin
-    tsh := MainPageControl.Pages[i];
-    if tsh.Caption = TabCaption then
-    begin
-      MainPageControl.ActivePage := tsh;
-      if (tsh.ControlCount > 0) and (tsh.Controls[0] is TFrame) then
-        Result := tsh.Controls[0] as TFrame;
-      exit;
-    end;
-  end;
+  Result := TBookImportCommand.FindFrameInTabs(MainPageControl,TabCaption);
 end;
 
 {$ENDIF}
@@ -467,7 +453,22 @@ end;
 
 procedure TForm1.btnImportClick(Sender: TObject);
 begin
+  // ----------------------------------------------------------
+  //
+  // Logger: messages in TGroupBox durring get books from REST server
+  //
+  grbxImportProgress.Visible := True;
+  grbxImportProgress.Tag := 9999;
+  with ProgressBar1 do
+  begin
+    Position := 0;
+    Max := 99;
+    Step := 1;
+  end;
+  Application.ProcessMessages;
+  // ----------------------------------------------------------
   ExecuteImportClick;
+  // ----------------------------------------------------------
 end;
 
 procedure TForm1.ExecuteImportClick;
@@ -486,20 +487,6 @@ var
   RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
 begin
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  //
-  // Logger: messages in TGroupBox durring get books from REST server
-  //
-  grbxImportProgress.Visible := True;
-  grbxImportProgress.Tag := 9999;
-  with ProgressBar1 do
-  begin
-    Position := 0;
-    Max := 99;
-    Step := 1;
-  end;
-  Application.ProcessMessages;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   FrameBookshelfs := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;

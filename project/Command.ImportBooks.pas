@@ -7,6 +7,8 @@ uses
   System.Classes,
   System.JSON,
   Vcl.Pattern.Command,
+  Vcl.Forms,
+  Vcl.ComCtrls,
 
   Cloud.Books.Reviews,
   ExtGUI.ListBox.Books,
@@ -25,20 +27,53 @@ type
 
 type
   TBookImportCommand = class (TCommand)
+  private
+    FMainPageControl: TPageControl;
+    FCloudBookReviews: TCloudBookReviews;
+    FLastSynchonizationDay: TDateTime;
+    FProgressBar1: TProgressBar;
   strict protected
     procedure Guard; override;
   public
+    class function FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
     procedure Execute; override;
+    property MainPageControl: TPageControl read FMainPageControl write FMainPageControl;
+    property CloudBookReviews: TCloudBookReviews read FCloudBookReviews write FCloudBookReviews;
+    property LastSynchonizationDay: TDateTime read FLastSynchonizationDay write FLastSynchonizationDay;
+    property ProgressBar1: TProgressBar read FProgressBar1 write FProgressBar1;
   end;
 
 implementation
+
+
+class function TBookImportCommand.FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
+var
+  i: Integer;
+  tsh: TTabSheet;
+begin
+  Result := nil;
+  for i := 0 to MainPageControl.PageCount - 1 do
+  begin
+    tsh := MainPageControl.Pages[i];
+    if tsh.Caption = TabCaption then
+    begin
+      MainPageControl.ActivePage := tsh;
+      if (tsh.ControlCount > 0) and (tsh.Controls[0] is TFrame) then
+        Result := tsh.Controls[0] as TFrame;
+      exit;
+    end;
+  end;
+end;
 
 { TBookImportCommand }
 
 procedure TBookImportCommand.Guard;
 begin
-  // Assets
-
+  Assert (MainPageControl<>nil);
+  Assert (CloudBookReviews<>nil);
+  Assert (LastSynchonizationDay<>0);
+  Assert (ProgressBar1<>nil);
+  // Assert (
 end;
 
 procedure TBookImportCommand.Execute;
@@ -57,24 +92,9 @@ var
   RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
 begin
-(*
   // ----------------------------------------------------------
   // ----------------------------------------------------------
-  //
-  // Logger: messages in TGroupBox durring get books from REST server
-  //
-  grbxImportProgress.Visible := True;
-  grbxImportProgress.Tag := 9999;
-  with ProgressBar1 do
-  begin
-    Position := 0;
-    Max := 99;
-    Step := 1;
-  end;
-  Application.ProcessMessages;
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  FrameBookshelfs := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;
+  FrameBookshelfs := FindFrameInTabs(MainPageControl, 'My Bookshelf') as TBookshelfsFrame;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   //
@@ -84,6 +104,7 @@ begin
   LastSynchonizationDay := IncMonth(LastSynchonizationDay, 1);
   BooksCounter := Length(BookReviewsCatalog);
   ProgressBar1.Max := BooksCounter;
+(*
   for i := 0 to BooksCounter - 1 do
   begin
     StrBookReview := CloudBookReviews.GetReview
