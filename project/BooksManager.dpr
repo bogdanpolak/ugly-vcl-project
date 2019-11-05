@@ -21,7 +21,9 @@ uses
   Frame.Bookshelfs in 'Frame.Bookshelfs.pas' {BookshelfsFrame: TFrame},
   Frame.Base in 'Frame.Base.pas' {BaseFrame: TFrame},
   Vcl.Pattern.Command in 'Vcl.Pattern.Command.pas',
-  Command.ImportBooks in 'Command.ImportBooks.pas';
+  Command.ImportBooks in 'Command.ImportBooks.pas',
+  Helper.TJSONObject in 'Helper.TJSONObject.pas',
+  Helper.TApplication in 'Helper.TApplication.pas';
 
 {$R *.res}
 
