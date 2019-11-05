@@ -439,12 +439,11 @@ begin
     ([MainPageControl, CloudBookReviews, SynchonizationInfo, ProgressBar1,
     DataModMain, Ratings]);
   // ----------------------------------------------------------
-  Label2.Caption := 'Imported books ratings:'+sLineBreak+Ratings.ToString;
+  Label2.Caption := 'Imported books ratings:' + sLineBreak + Ratings.ToString;
   if Application.InDeveloperMode then
     Caption := Ratings.ToString();
   grbxImportProgress.Tag := 80;
 end;
-
 
 procedure TForm1.btnBooksfelfsClick(Sender: TObject);
 var

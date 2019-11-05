@@ -36,7 +36,7 @@ type
     function ToString: string; override;
   end;
 
-  TBookImportCommand = class (TCommand)
+  TBookImportCommand = class(TCommand)
   private
     FMainPageControl: TPageControl;
     FCloudBookReviews: TCloudBookReviews;
@@ -48,15 +48,19 @@ type
     procedure Guard; override;
   public
     RatingsAsString: string;
-    class function FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
+    class function FindFrameInTabs(const MainPageControl: TPageControl;
+      const TabCaption: string): TFrame;
     class function BooksToDateTime(const s: string): TDateTime;
     class procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
     class function RatingsToString(const ARattings: array of Integer): string;
     procedure Execute; override;
   published
-    property MainPageControl: TPageControl read FMainPageControl write FMainPageControl;
-    property CloudBookReviews: TCloudBookReviews read FCloudBookReviews write FCloudBookReviews;
-    property SynchonizationInfo: TSynchonizationInfo read FSynchonizationInfo write FSynchonizationInfo;
+    property MainPageControl: TPageControl read FMainPageControl
+      write FMainPageControl;
+    property CloudBookReviews: TCloudBookReviews read FCloudBookReviews
+      write FCloudBookReviews;
+    property SynchonizationInfo: TSynchonizationInfo read FSynchonizationInfo
+      write FSynchonizationInfo;
     property ProgressBar1: TProgressBar read FProgressBar1 write FProgressBar1;
     property DataModMain: TDataModMain read FDataModMain write FDataModMain;
     property Ratings: TRatings read FRatings write FRatings;
@@ -87,7 +91,8 @@ begin
   Result := EncodeDate(yy, mm, 1);
 end;
 
-class procedure TBookImportCommand.ValidateJsonReviewer(jsReviewer: TJSONObject);
+class procedure TBookImportCommand.ValidateJsonReviewer
+  (jsReviewer: TJSONObject);
 var
   isValid: Boolean;
 begin
@@ -98,7 +103,8 @@ begin
       jsReviewer.ToString);
 end;
 
-class function TBookImportCommand.RatingsToString(const ARattings: array of Integer): string;
+class function TBookImportCommand.RatingsToString(const ARattings
+  : array of Integer): string;
 var
   i: Integer;
 begin
@@ -113,9 +119,8 @@ begin
   Result := Result + ']';
 end;
 
-
-
-class function TBookImportCommand.FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
+class function TBookImportCommand.FindFrameInTabs(const MainPageControl
+  : TPageControl; const TabCaption: string): TFrame;
 var
   i: Integer;
   tsh: TTabSheet;
@@ -138,12 +143,12 @@ end;
 
 procedure TBookImportCommand.Guard;
 begin
-  Assert (MainPageControl<>nil);
-  Assert (CloudBookReviews<>nil);
-  Assert (SynchonizationInfo<>nil);
-  Assert (ProgressBar1<>nil);
-  Assert (DataModMain<>nil);
-  Assert (Ratings<>nil);
+  Assert(MainPageControl <> nil);
+  Assert(CloudBookReviews <> nil);
+  Assert(SynchonizationInfo <> nil);
+  Assert(ProgressBar1 <> nil);
+  Assert(DataModMain <> nil);
+  Assert(Ratings <> nil);
 end;
 
 procedure TBookImportCommand.Execute;
@@ -163,7 +168,8 @@ begin
   inherited;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
-  FrameBookshelfs := FindFrameInTabs(MainPageControl, 'My Bookshelf') as TBookshelfsFrame;
+  FrameBookshelfs := FindFrameInTabs(MainPageControl, 'My Bookshelf')
+    as TBookshelfsFrame;
   // ----------------------------------------------------------
   Ratings.Values := [];
   // ----------------------------------------------------------
