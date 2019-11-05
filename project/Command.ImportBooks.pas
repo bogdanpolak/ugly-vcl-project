@@ -6,13 +6,15 @@ uses
   System.SysUtils,
   System.Classes,
   System.JSON,
+  System.Variants,
+  System.Generics.Collections,
   Vcl.Pattern.Command,
   Vcl.Forms,
   Vcl.ComCtrls,
 
   Cloud.Books.Reviews,
   ExtGUI.ListBox.Books,
-  Frame.Bookshelfs;
+  Frame.Bookshelfs, Data.Main, Helper.TJSONObject, Helper.TApplication;
 
 type
   TReview = record
@@ -25,25 +27,92 @@ type
     Oppinion: string;
   end;
 
-type
+  TSynchonizationInfo = class
+    LastDay: TDateTime;
+  end;
+
+  TRatings = class
+    Values: array of Integer;
+    function ToString: string; override;
+  end;
+
   TBookImportCommand = class (TCommand)
   private
     FMainPageControl: TPageControl;
     FCloudBookReviews: TCloudBookReviews;
-    FLastSynchonizationDay: TDateTime;
+    FSynchonizationInfo: TSynchonizationInfo;
     FProgressBar1: TProgressBar;
+    FDataModMain: TDataModMain;
+    FRatings: TRatings;
   strict protected
     procedure Guard; override;
   public
+    RatingsAsString: string;
     class function FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
+    class function BooksToDateTime(const s: string): TDateTime;
+    class procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
+    class function RatingsToString(const ARattings: array of Integer): string;
     procedure Execute; override;
+  published
     property MainPageControl: TPageControl read FMainPageControl write FMainPageControl;
     property CloudBookReviews: TCloudBookReviews read FCloudBookReviews write FCloudBookReviews;
-    property LastSynchonizationDay: TDateTime read FLastSynchonizationDay write FLastSynchonizationDay;
+    property SynchonizationInfo: TSynchonizationInfo read FSynchonizationInfo write FSynchonizationInfo;
     property ProgressBar1: TProgressBar read FProgressBar1 write FProgressBar1;
+    property DataModMain: TDataModMain read FDataModMain write FDataModMain;
+    property Ratings: TRatings read FRatings write FRatings;
   end;
 
 implementation
+
+class function TBookImportCommand.BooksToDateTime(const s: string): TDateTime;
+const
+  months: array [1 .. 12] of string = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
+var
+  m: string;
+  y: string;
+  i: Integer;
+  mm: Integer;
+  yy: Integer;
+begin
+  m := s.Substring(0, 3);
+  y := s.Substring(4);
+  mm := 0;
+  for i := 1 to 12 do
+    if months[i].ToUpper = m.ToUpper then
+      mm := i;
+  if mm = 0 then
+    raise ERangeError.Create('Incorect mont name in the date: ' + s);
+  yy := y.ToInteger();
+  Result := EncodeDate(yy, mm, 1);
+end;
+
+class procedure TBookImportCommand.ValidateJsonReviewer(jsReviewer: TJSONObject);
+var
+  isValid: Boolean;
+begin
+  isValid := jsReviewer.Values['rating'] is TJSONNumber and
+    jsReviewer.IsValidIsoDateUtc('registered');
+  if not isValid then
+    raise Exception.Create('Invalid reviewer JOSN record: ' +
+      jsReviewer.ToString);
+end;
+
+class function TBookImportCommand.RatingsToString(const ARattings: array of Integer): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to Length(ARattings) - 1 do
+  begin
+    if i = 0 then
+      Result := Result + ARattings[i].ToString
+    else
+      Result := Result + ', ' + ARattings[i].ToString;
+  end;
+  Result := Result + ']';
+end;
+
 
 
 class function TBookImportCommand.FindFrameInTabs(const MainPageControl:TPageControl; const TabCaption: string): TFrame;
@@ -71,9 +140,10 @@ procedure TBookImportCommand.Guard;
 begin
   Assert (MainPageControl<>nil);
   Assert (CloudBookReviews<>nil);
-  Assert (LastSynchonizationDay<>0);
+  Assert (SynchonizationInfo<>nil);
   Assert (ProgressBar1<>nil);
-  // Assert (
+  Assert (DataModMain<>nil);
+  Assert (Ratings<>nil);
 end;
 
 procedure TBookImportCommand.Execute;
@@ -88,23 +158,22 @@ var
   j: Integer;
   jsReviewer: TJSONObject;
   Review: TReview;
-  AllRatings: array of Integer;
-  RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
 begin
+  inherited;
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   FrameBookshelfs := FindFrameInTabs(MainPageControl, 'My Bookshelf') as TBookshelfsFrame;
   // ----------------------------------------------------------
+  Ratings.Values := [];
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  BookReviewsCatalog := CloudBookReviews.GetCatalog(LastSynchonizationDay);
-  LastSynchonizationDay := IncMonth(LastSynchonizationDay, 1);
+  BookReviewsCatalog := CloudBookReviews.GetCatalog(SynchonizationInfo.LastDay);
+  SynchonizationInfo.LastDay := IncMonth(SynchonizationInfo.LastDay, 1);
   BooksCounter := Length(BookReviewsCatalog);
   ProgressBar1.Max := BooksCounter;
-(*
   for i := 0 to BooksCounter - 1 do
   begin
     StrBookReview := CloudBookReviews.GetReview
@@ -171,21 +240,11 @@ begin
         with Review do
         begin
           ReporterID := jsReviewer.Values['reporter-id'].Value;
-          Registered := JsonValueAsIsoDate(jsReviewer.Values['registered']);
+          Registered := jsReviewer.GetFieldDateIsoUtc('registered');
           Rating := (jsReviewer.Values['rating'] as TJSONNumber).AsInt;
-          // Contact: string;
-          if fieldAvaliable(jsReviewer.Values['firstname']) then
-            FirstName := jsReviewer.Values['firstname'].Value
-          else
-            FirstName := '';
-          if fieldAvaliable(jsReviewer.Values['lastname']) then
-            LastName := jsReviewer.Values['lastname'].Value
-          else
-            LastName := '';
-          if fieldAvaliable(jsReviewer.Values['review']) then
-            Oppinion := jsReviewer.Values['review'].Value
-          else
-            Oppinion := '';
+          FirstName := jsReviewer.GetFieldOrEmpty('firstname');
+          LastName := jsReviewer.GetFieldOrEmpty('lastname');
+          Oppinion := jsReviewer.GetFieldOrEmpty('review');
         end;
         // ----------------------------------------------------------------
         // Find the Reader / Reporter in then database using an ID
@@ -209,20 +268,20 @@ begin
         DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
           Review.Rating, Review.Oppinion, Review.Registered]);
         // ----------------------------------------------------------------
-        Insert([Review.Rating], AllRatings, maxInt);
+        Insert([Review.Rating], Ratings.Values, maxInt);
       end;
     finally
       b.Free;
       jsBookReview.Free;
     end;
   end;
-  RatingsAsString := RatingsToString(AllRatings);
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  if FApplicationInDeveloperMode then
-    Caption := RatingsAsString;
-  grbxImportProgress.Tag := 80;
-*)
+end;
+
+{ TRatings }
+
+function TRatings.ToString: string;
+begin
+  Result := TBookImportCommand.RatingsToString(Self.Values);
 end;
 
 end.

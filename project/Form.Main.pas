@@ -14,11 +14,15 @@ uses
   Data.DB,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids,
+  Vcl.ActnList,
 {$IFDEF UseChromeTabs}
   ChromeTabs, ChromeTabsClasses, ChromeTabsTypes,
 {$ENDIF}
   Frame.Welcome,
-  Cloud.Books.Reviews, Command.ImportBooks;
+  Cloud.Books.Reviews,
+  Vcl.Pattern.Command,
+  Command.ImportBooks,
+  Helper.TApplication;
 
 type
   TFrameClass = class of TFrame;
@@ -39,6 +43,7 @@ type
     Label2: TLabel;
     tmrIdle: TTimer;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure tmrAppReadyTimer(Sender: TObject);
     procedure tmrIdleTimer(Sender: TObject);
     procedure Splitter1Moved(Sender: TObject);
@@ -52,7 +57,8 @@ type
   public
     pnMain: TPanel;
   private
-    LastSynchonizationDay: TDateTime;
+    Ratings: TRatings;
+    SynchonizationInfo: TSynchonizationInfo;
     CloudBookReviews: TCloudBookReviews;
     FApplicationInDeveloperMode: Boolean;
     FrameCounter: Integer;
@@ -131,8 +137,17 @@ begin
 {$ENDIF}
   if FApplicationInDeveloperMode then
     ReportMemoryLeaksOnShutdown := True;
+
+  SynchonizationInfo := TSynchonizationInfo.Create;
+  Ratings := TRatings.Create;
   CloudBookReviews := TCloudBookReviews.Create(Self);
   BuildTabbedInterface;
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  SynchonizationInfo.Free;
+  Ratings.Free;
 end;
 
 procedure TForm1.tmrAppReadyTimer(Sender: TObject);
@@ -157,7 +172,7 @@ var
   VersionNr: Integer;
 begin
   FrameCounter := 0;
-  LastSynchonizationDay := EncodeDate(2019, FirstMonthToFetchBooksData, 1);
+  SynchonizationInfo.LastDay := EncodeDate(2019, FirstMonthToFetchBooksData, 1);
   // ----------------------------------------------------------
   grbxImportProgress.Visible := False;
   // ----------------------------------------------------------
@@ -318,29 +333,6 @@ begin
   Result := System.DateUtils.ISO8601ToDate(jsValue.Value, False);
 end;
 
-function BooksToDateTime(const s: string): TDateTime;
-const
-  months: array [1 .. 12] of string = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
-var
-  m: string;
-  y: string;
-  i: Integer;
-  mm: Integer;
-  yy: Integer;
-begin
-  m := s.Substring(0, 3);
-  y := s.Substring(4);
-  mm := 0;
-  for i := 1 to 12 do
-    if months[i].ToUpper = m.ToUpper then
-      mm := i;
-  if mm = 0 then
-    raise ERangeError.Create('Incorect mont name in the date: ' + s);
-  yy := y.ToInteger();
-  Result := EncodeDate(yy, mm, 1);
-end;
-
 {$IFDEF UseChromeTabs}
 
 function TForm1.ConstructNewVisualTab(FreameClass: TFrameClass;
@@ -405,7 +397,7 @@ end;
 
 function TForm1.FindFrameInTabs(const TabCaption: string): TFrame;
 begin
-  Result := TBookImportCommand.FindFrameInTabs(MainPageControl,TabCaption);
+  Result := TBookImportCommand.FindFrameInTabs(MainPageControl, TabCaption);
 end;
 
 {$ENDIF}
@@ -425,32 +417,6 @@ begin
   AutoSizeColumns(DataGrid);
 end;
 
-procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
-var
-  isValid: Boolean;
-begin
-  isValid := jsReviewer.Values['rating'] is TJSONNumber and
-    JsonValueIsIsoDate(jsReviewer.Values['registered']);
-  if not isValid then
-    raise Exception.Create('Invalid reviewer JOSN record: ' +
-      jsReviewer.ToString);
-end;
-
-function RatingsToString(const ARattings: array of Integer): string;
-var
-  i: Integer;
-begin
-  Result := '[';
-  for i := 0 to Length(ARattings) - 1 do
-  begin
-    if i = 0 then
-      Result := Result + ARattings[i].ToString
-    else
-      Result := Result + ', ' + ARattings[i].ToString;
-  end;
-  Result := Result + ']';
-end;
-
 procedure TForm1.btnImportClick(Sender: TObject);
 begin
   // ----------------------------------------------------------
@@ -467,8 +433,17 @@ begin
   end;
   Application.ProcessMessages;
   // ----------------------------------------------------------
-  ExecuteImportClick;
+  (*
+   ExecuteImportClick;
+  *)
+  TCommandVclFactory.ExecuteCommand<TBookImportCommand>
+    ([MainPageControl, CloudBookReviews, SynchonizationInfo, ProgressBar1,
+    DataModMain, Ratings]);
   // ----------------------------------------------------------
+  Label2.Caption := 'Imported books ratings:'+sLineBreak+Ratings.ToString;
+  if Application.InDeveloperMode then
+    Caption := Ratings.ToString();
+  grbxImportProgress.Tag := 80;
 end;
 
 procedure TForm1.ExecuteImportClick;
@@ -484,19 +459,19 @@ var
   jsReviewer: TJSONObject;
   Review: TReview;
   AllRatings: array of Integer;
-  RatingsAsString: string;
   FrameBookshelfs: TBookshelfsFrame;
 begin
   // ----------------------------------------------------------
   // ----------------------------------------------------------
   FrameBookshelfs := FindFrameInTabs('My Bookshelf') as TBookshelfsFrame;
   // ----------------------------------------------------------
+  Ratings.Values := [];
   // ----------------------------------------------------------
   //
   // Get Book Reviews from Cloud as TJSONArray
   //
-  BookReviewsCatalog := CloudBookReviews.GetCatalog(LastSynchonizationDay);
-  LastSynchonizationDay := IncMonth(LastSynchonizationDay, 1);
+  BookReviewsCatalog := CloudBookReviews.GetCatalog(SynchonizationInfo.LastDay);
+  SynchonizationInfo.LastDay := IncMonth(SynchonizationInfo.LastDay, 1);
   BooksCounter := Length(BookReviewsCatalog);
   ProgressBar1.Max := BooksCounter;
   for i := 0 to BooksCounter - 1 do
@@ -518,7 +493,7 @@ begin
       b.isbn := jsBookReview.Values['isbn'].Value;
       b.author := jsBookReview.Values['author'].Value;
       // potnecial memory leaks - if exceptiom will be raised
-      b.releseDate := BooksToDateTime(jsBookReview.Values['date'].Value);
+      b.releseDate := TBookImportCommand.BooksToDateTime(jsBookReview.Values['date'].Value);
       // potnecial memory leaks - if exceptiom will be raised
       b.Pages := (jsBookReview.Values['pages'] as TJSONNumber).AsInt;
       // potnecial memory leaks - if exceptiom will be raised
@@ -560,7 +535,7 @@ begin
         { TODO 3: [A] Move this code into record TReaderReport.LoadFromJSON }
         jsReviewer := jsReviewers.Items[j] as TJSONObject;
         // ----------------------------------------------------------------
-        ValidateJsonReviewer(jsReviewer);
+        TBookImportCommand.ValidateJsonReviewer(jsReviewer);
         // ----------------------------------------------------------------
         with Review do
         begin
@@ -603,19 +578,13 @@ begin
         DataModMain.fdqReports.AppendRecord([Review.ReporterID, b.isbn,
           Review.Rating, Review.Oppinion, Review.Registered]);
         // ----------------------------------------------------------------
-        Insert([Review.Rating], AllRatings, maxInt);
+        Insert([Review.Rating], Ratings.Values, maxInt);
       end;
     finally
       b.Free;
       jsBookReview.Free;
     end;
   end;
-  RatingsAsString := RatingsToString(AllRatings);
-  // ----------------------------------------------------------
-  // ----------------------------------------------------------
-  if FApplicationInDeveloperMode then
-    Caption := RatingsAsString;
-  grbxImportProgress.Tag := 80;
 end;
 
 procedure TForm1.btnBooksfelfsClick(Sender: TObject);
