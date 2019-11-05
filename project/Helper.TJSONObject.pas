@@ -38,7 +38,6 @@ function TJSONObjectHelper.IsValidIsoDateUtc(const Field: string): Boolean;
 var
   dt: TDateTime;
 begin
-  dt := 0;
   try
     dt := System.DateUtils.ISO8601ToDate(Self.Values[Field].Value, False);
     Result := True;
