@@ -22,12 +22,14 @@ type
     procedure Execute();
   end;
 
+{$M+}
+
   TCommand = class(TComponent, ICommand)
   const
     // * --------------------------------------------------------------------
     // * Signature
-    ReleaseDate = '2019.08.30';
-    ReleaseVersion = '0.3';
+    ReleaseDate = '2019.11.05';
+    ReleaseVersion = '0.3.2';
     // * --------------------------------------------------------------------
   strict private
     // FReceiver: TReceiver;
@@ -39,6 +41,7 @@ type
     // call receiver method(s) or just do the job (merged command)
     // property Receiver: TReceiver read FReceiver set FReceiver;
   end;
+{$M-}
 
   TPropertyInfo = record
     Kind: TTypeKind;
@@ -79,10 +82,18 @@ type
     property Command: TCommand read FCommand write FCommand;
   end;
 
+type
+  TCommandClass = class of TCommand;
+
 implementation
 
-// ------------------------------------------------------------------------
-{ TCommand }
+const
+  ERRMSG_NotSupportedInjection = 'Not supported injection type!' +
+    ' This property %s: %s in not supported in command pattern.' +
+    ' Move this propoerty into [public] section';
+
+  // ------------------------------------------------------------------------
+  { TCommand }
 
 procedure TCommand.Execute;
 begin
@@ -107,6 +118,11 @@ end;
 // ------------------------------------------------------------------------
 { TActionFactory }
 
+function TypeKindToStr(value: TTypeKind): string;
+begin
+  Result := System.TypInfo.GetEnumName(TypeInfo(TTypeKind), integer(value));
+end;
+
 class procedure TCommandVclFactory.InjectProperties(ACommand: TCommand;
   const Injections: array of const);
 var
@@ -128,7 +144,20 @@ begin
     for i := 0 to PropertyList.Count - 1 do
     begin
       propInfo := PropertyList.GetInfo(i);
-      if propInfo.Kind = tkClass then
+      // propInfo.Kind:
+      // tkInteger, tkChar, tkEnumeration, tkFloat, tkString, tkSet,
+      // tkWChar, tkLString, tkWString, tkVariant, tkArray, tkRecord,
+      // tkInterface, tkInt64, tkDynArray, tkUString
+      if (propInfo.Kind = tkUString) and (propInfo.PropertyName = 'Name') then
+        // ignore
+      else if (propInfo.Kind = tkInteger) and (propInfo.PropertyName = 'Tag')
+      then
+        // ignore
+      {else if propInfo.Kind = tkFloat then
+      begin
+
+      end}
+      else if propInfo.Kind = tkClass then
       begin
         for j := 0 to High(Injections) do
           if not(UsedInjection[j]) then
@@ -142,12 +171,12 @@ begin
                 UsedInjection[j] := True;
                 Break;
               end;
-            end
-            else
-              Assert(False,
-                'Not supported yet! Only objects can be injected to a command');
+            end;
           end;
-      end;
+      end
+      else
+        Assert(False, Format(ERRMSG_NotSupportedInjection,
+          [propInfo.PropertyName, TypeKindToStr(propInfo.Kind)]));
     end;
   finally
     PropertyList.Free;
@@ -156,18 +185,29 @@ end;
 
 class function TCommandVclFactory.CreateCommand<T>(AOwner: TComponent;
   const Injections: array of const): T;
+var
+  AClass: TCommandClass;
 begin
-  Result := T.Create(AOwner);
+  // -----------------------------------------
+  AClass := T;
+  Result := T(AClass.Create(AOwner));
+  // 10.3 Rio: just one line: Result := T.Create(AOwner);
+  // -----------------------------------------
   InjectProperties(Result, Injections);
 end;
 
 class procedure TCommandVclFactory.ExecuteCommand<T>(const Injections
   : array of const);
 var
+  AClass: TCommandClass;
   Command: T;
 begin
   try
-    Command := T.Create(nil);
+    // -----------------------------------------
+    AClass := T;
+    Command := T(AClass.Create(nil));
+    // 10.3 Rio: Command := T.Create(nil);
+    // -----------------------------------------
     InjectProperties(Command, Injections);
     Command.Execute;
   finally
@@ -179,11 +219,16 @@ class function TCommandVclFactory.CreateCommandAction<T>(AOwner: TComponent;
   const ACaption: string; const Injections: array of const): TAction;
 var
   act: TCommandAction;
+  AClass: TCommandClass;
 begin
   act := TCommandAction.Create(AOwner);
   with act do
   begin
-    Command := T.Create(act);
+    // -----------------------------------------
+    AClass := (T);
+    Command := T(AClass.Create(act));
+    // 10.3 Rio: Command := T.Create(act);
+    // -----------------------------------------
     Caption := ACaption;
   end;
   InjectProperties(act.Command, Injections);
