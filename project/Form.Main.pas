@@ -432,9 +432,6 @@ begin
   end;
   Application.ProcessMessages;
   // ----------------------------------------------------------
-  (*
-   ExecuteImportClick;
-  *)
   TCommandVclFactory.ExecuteCommand<TBookImportCommand>
     ([MainPageControl, CloudBookReviews, SynchonizationInfo, ProgressBar1,
     DataModMain, Ratings]);

@@ -12,9 +12,13 @@ uses
   Vcl.Forms,
   Vcl.ComCtrls,
 
+  Helper.TJSONObject,
+  Helper.TApplication,
+
   Cloud.Books.Reviews,
   ExtGUI.ListBox.Books,
-  Frame.Bookshelfs, Data.Main, Helper.TJSONObject, Helper.TApplication;
+  Frame.Bookshelfs,
+  Data.Main;
 
 type
   TReview = record
@@ -44,15 +48,15 @@ type
     FProgressBar1: TProgressBar;
     FDataModMain: TDataModMain;
     FRatings: TRatings;
+  strict private
+    class function BooksToDateTime(const s: string): TDateTime;
+    class procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
   strict protected
     procedure Guard; override;
   public
     RatingsAsString: string;
-    class function FindFrameInTabs(const MainPageControl: TPageControl;
+    class function FindFrameInTabs(const aPageControl: TPageControl;
       const TabCaption: string): TFrame;
-    class function BooksToDateTime(const s: string): TDateTime;
-    class procedure ValidateJsonReviewer(jsReviewer: TJSONObject);
-    class function RatingsToString(const ARattings: array of Integer): string;
     procedure Execute; override;
   published
     property MainPageControl: TPageControl read FMainPageControl
@@ -103,35 +107,19 @@ begin
       jsReviewer.ToString);
 end;
 
-class function TBookImportCommand.RatingsToString(const ARattings
-  : array of Integer): string;
-var
-  i: Integer;
-begin
-  Result := '[';
-  for i := 0 to Length(ARattings) - 1 do
-  begin
-    if i = 0 then
-      Result := Result + ARattings[i].ToString
-    else
-      Result := Result + ', ' + ARattings[i].ToString;
-  end;
-  Result := Result + ']';
-end;
-
-class function TBookImportCommand.FindFrameInTabs(const MainPageControl
+class function TBookImportCommand.FindFrameInTabs(const aPageControl
   : TPageControl; const TabCaption: string): TFrame;
 var
   i: Integer;
   tsh: TTabSheet;
 begin
   Result := nil;
-  for i := 0 to MainPageControl.PageCount - 1 do
+  for i := 0 to aPageControl.PageCount - 1 do
   begin
-    tsh := MainPageControl.Pages[i];
+    tsh := aPageControl.Pages[i];
     if tsh.Caption = TabCaption then
     begin
-      MainPageControl.ActivePage := tsh;
+      aPageControl.ActivePage := tsh;
       if (tsh.ControlCount > 0) and (tsh.Controls[0] is TFrame) then
         Result := tsh.Controls[0] as TFrame;
       exit;
@@ -286,8 +274,18 @@ end;
 { TRatings }
 
 function TRatings.ToString: string;
+var
+  i: Integer;
 begin
-  Result := TBookImportCommand.RatingsToString(Self.Values);
+  Result := '[';
+  for i := 0 to Length(Self.Values) - 1 do
+  begin
+    if i = 0 then
+      Result := Result + Values[i].ToString
+    else
+      Result := Result + ', ' + Values[i].ToString;
+  end;
+  Result := Result + ']';
 end;
 
 end.
