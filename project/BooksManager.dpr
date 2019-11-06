@@ -19,7 +19,11 @@ uses
   Data.UpgradeDatabase in 'Data.UpgradeDatabase.pas' {UpgradeDataModule: TDataModule},
   Cloud.Books.Reviews in 'Cloud.Books.Reviews.pas',
   Frame.Bookshelfs in 'Frame.Bookshelfs.pas' {BookshelfsFrame: TFrame},
-  Frame.Base in 'Frame.Base.pas' {BaseFrame: TFrame};
+  Frame.Base in 'Frame.Base.pas' {BaseFrame: TFrame},
+  Vcl.Pattern.Command in 'Vcl.Pattern.Command.pas',
+  Command.ImportBooks in 'Command.ImportBooks.pas',
+  Helper.TJSONObject in 'Helper.TJSONObject.pas',
+  Helper.TApplication in 'Helper.TApplication.pas';
 
 {$R *.res}
 

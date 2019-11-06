@@ -12,6 +12,7 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter2: TSplitter
@@ -60,8 +61,6 @@ object Form1: TForm1
       Caption = 'Import Data'
       TabOrder = 0
       OnClick = btnImportClick
-      ExplicitTop = 185
-      ExplicitWidth = 221
     end
     object btnBooksfelfs: TButton
       AlignWithMargins = True
@@ -73,7 +72,6 @@ object Form1: TForm1
       Caption = 'My bookshelf'
       TabOrder = 1
       OnClick = btnBooksfelfsClick
-      ExplicitWidth = 221
     end
     object btnBooksCatalog: TButton
       AlignWithMargins = True
@@ -85,7 +83,6 @@ object Form1: TForm1
       Caption = 'Books Catalog'
       TabOrder = 2
       OnClick = btnBooksCatalogClick
-      ExplicitLeft = 8
     end
     object btnReviewsCatalog: TButton
       AlignWithMargins = True
@@ -97,7 +94,6 @@ object Form1: TForm1
       Caption = 'Reviews'
       TabOrder = 3
       OnClick = btnReviewsCatalogClick
-      ExplicitWidth = 221
     end
     object grbxImportProgress: TGroupBox
       AlignWithMargins = True
@@ -108,31 +104,27 @@ object Form1: TForm1
       Align = alTop
       Caption = 'Import Progress:'
       TabOrder = 4
-      ExplicitTop = 230
-      ExplicitWidth = 221
       object Label1: TLabel
         AlignWithMargins = True
         Left = 8
         Top = 20
-        Width = 176
+        Width = 31
         Height = 13
         Margins.Left = 6
         Margins.Top = 5
         Margins.Right = 6
         Align = alTop
         Caption = 'Label1'
-        ExplicitWidth = 31
       end
       object Label2: TLabel
         AlignWithMargins = True
         Left = 5
         Top = 71
-        Width = 182
+        Width = 31
         Height = 13
         Align = alTop
         Alignment = taCenter
         Caption = 'Label2'
-        ExplicitWidth = 31
       end
       object ProgressBar1: TProgressBar
         AlignWithMargins = True
@@ -142,7 +134,6 @@ object Form1: TForm1
         Height = 26
         Align = alTop
         TabOrder = 0
-        ExplicitWidth = 211
       end
     end
   end
